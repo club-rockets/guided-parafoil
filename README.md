@@ -1,4 +1,4 @@
-# RockETS' Guided Parafoil
+# RockETS' Guided Parafoil  <img src="/assets/paraglider.png" width="60" vertical-align="bottom">
 
 
 #### How to contribute ?
