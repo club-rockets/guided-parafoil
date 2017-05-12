@@ -1,3 +1,0 @@
-rtc.c:55:6:MX_RTC_Init	72	static
-rtc.c:120:6:HAL_RTC_MspInit	0	static
-rtc.c:136:6:HAL_RTC_MspDeInit	0	static
