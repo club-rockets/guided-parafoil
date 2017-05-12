@@ -1,4 +1,4 @@
-# RockETS' Guided Parafoil  <img src="/assets/paraglider.png" width="60" vertical-align="bottom">
+# RockETS' Guided Parafoil  <img src="/assets/paraglider.png" width="60" vertical-align="bottom"> <img src="https://travis-ci.org/club-rockets/guided-parafoil.svg?branch=master">
 
 
 #### How to contribute ?
