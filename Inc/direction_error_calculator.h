@@ -11,8 +11,8 @@
  Ecole de Technologies Superieures
  *********************************************************************************************/
 
-#ifndef MOTORCMD_H_
-#define MOTORCMD_H_
+#ifndef DIRECTION_ERROR_CALCULATOR_H_
+#define DIRECTION_ERROR_CALCULATOR_H_
 
 #include "string.h"
 #include "math.h"
@@ -24,7 +24,6 @@
 /******************************************************************************/
 /*                             Function prototype                             */
 /******************************************************************************/
-void MotorCMD_Loop();
-void Set_Direction_Error(uint16_t _Direction_Error);
+void Direction_Error_Calculator_Loop();
 
-#endif /* MOTORCMD_H_ */
+#endif /* DIRECTION_ERROR_CALCULATOR_H_ */

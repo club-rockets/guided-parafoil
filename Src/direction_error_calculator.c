@@ -9,22 +9,13 @@
  All rights reserved
  RockETS, Montreal
  Ecole de Technologies Superieures
+ this file contain the main program
+ every ISR is called here and passes global variable
  *********************************************************************************************/
 
-#ifndef MOTORCMD_H_
-#define MOTORCMD_H_
+#include "direction_error_calculator.h"
 
-#include "string.h"
-#include "math.h"
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_it.h"
-
-#include "tim.h"
-
-/******************************************************************************/
-/*                             Function prototype                             */
-/******************************************************************************/
-void MotorCMD_Loop();
-void Set_Direction_Error(uint16_t _Direction_Error);
-
-#endif /* MOTORCMD_H_ */
+void Direction_Error_Calculator_Loop()
+{
+  HAL_GPIO_TogglePin(GPIOD, LED2_Pin);
+}

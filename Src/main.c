@@ -54,7 +54,8 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "direction_error_calculator.h"
+#include "motorcmd.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -197,8 +198,17 @@ void SystemClock_Config(void) {
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-  if (htim->Instance = TIM3)
+
+  if (htim->Instance == TIM3)
+  {
     MotorCMD_Loop();
+  }
+
+  if (htim->Instance == TIM4)
+  {
+    Direction_Error_Calculator_Loop();
+  }
+
 }
 /* USER CODE END 4 */
 
