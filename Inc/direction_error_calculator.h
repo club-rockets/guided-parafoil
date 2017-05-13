@@ -19,7 +19,17 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_it.h"
 
+#include "rtc.h"
 #include "tim.h"
+#include "SD_save.h"
+
+/******************************************************************************/
+/*                             Global variable                                */
+/******************************************************************************/
+//RTC time and date handler
+RTC_TimeTypeDef sTime;
+RTC_DateTypeDef sDate;
+RTC_AlarmTypeDef sAlarm;
 
 /******************************************************************************/
 /*                             Function prototype                             */

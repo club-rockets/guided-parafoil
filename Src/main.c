@@ -69,6 +69,7 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void Error_Handler(void);
+static void MX_NVIC_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -111,6 +112,9 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM6_Init();
 
+  /* Initialize interrupts */
+  MX_NVIC_Init();
+
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
@@ -121,6 +125,8 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim6);
+
+  SD_Save_Init();
 
   /* USER CODE END 2 */
 
@@ -200,6 +206,36 @@ void SystemClock_Config(void)
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+}
+
+/** NVIC Configuration
+*/
+static void MX_NVIC_Init(void)
+{
+  /* EXTI3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+  /* TIM3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM3_IRQn);
+  /* TIM4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM4_IRQn);
+  /* SDIO_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SDIO_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(SDIO_IRQn);
+  /* TIM6_DAC_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+  /* CAN2_RX0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(CAN2_RX0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(CAN2_RX0_IRQn);
+  /* CAN2_RX1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(CAN2_RX1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(CAN2_RX1_IRQn);
+  /* OTG_FS_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(OTG_FS_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
 }
 
 /* USER CODE BEGIN 4 */

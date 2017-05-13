@@ -19,16 +19,21 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_it.h"
 
+#include "fatfs.h"
+#include "sdio.h"
+
 /******************************************************************************/
 /*                                Define                                      */
 /******************************************************************************/
-#define FILENAME "RockETS_SGP.csv"
-#define DATA_LOG_COL_NAME "RTC Time,Rocket State,Mission Time (ms), Main Loop Use (%),Main Detect,Main Fire,Drogue Detect,Drogue Fire,Barometer Temperature (degC),Air Density (Kg/m^3),Barometer Altitude (m),AGL Altitude (m),Estimated Altitude (m),Estimated Vertical Speed (m/s),Estimated Vertical Acceleration (m/s/s)\n"
+#define FILENAME "SGP.csv"//Must be less than 8 characters!!!
+#define DATA_LOG_COL_NAME "RTC Time,Mission Time (ms)\n"
 #define DATA_LOG_HEADER "\nRockETS Data Logger Version 2.0\n"
 
 /******************************************************************************/
 /*                             Function prototype                             */
 /******************************************************************************/
 void SD_Save_Loop();
+void SD_Save_Data(uint8_t *_Save_String);
+void SD_Save_Init();
 
 #endif /* SD_SAVE_H_ */

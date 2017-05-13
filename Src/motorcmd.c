@@ -33,11 +33,11 @@ uint16_t Get_MotorRightSpeed();
 
 void MotorCMD_Loop() {
   static uint32_t led_counter;
-  static float previous_MotorLeft_SpeedErr, previous_MotorRight_SpeedErr; //Previous speed error
-  static float previous_MotorLeft_Cmd, previous_MotorRight_Cmd;           //Previous motor command
+  static float previous_MotorLeft_SpeedErr, previous_MotorRight_SpeedErr;  //Previous speed error
+  static float previous_MotorLeft_Cmd, previous_MotorRight_Cmd;  //Previous motor command
 
   uint16_t MotorLeft_PosErr, MotorRight_PosErr;     //Axial positionning error
-  uint16_t MotorLeft_SpeedCmd, MotorRight_SpeedCmd; //Speed command
+  uint16_t MotorLeft_SpeedCmd, MotorRight_SpeedCmd;  //Speed command
   float MotorLeft_SpeedErr, MotorRight_SpeedErr;    //Axial speed error
   float MotorLeft_Cmd, MotorRight_Cmd;              //Motor command
 
@@ -54,8 +54,10 @@ void MotorCMD_Loop() {
   MotorRight_SpeedErr = MotorRight_SpeedCmd - Get_MotorRightSpeed();
 
   //Calculation of the motor command
-  MotorLeft_Cmd = 0.001941 * MotorLeft_SpeedErr + 0.001941 * previous_MotorLeft_SpeedErr + previous_MotorLeft_Cmd;
-  MotorRight_Cmd = 0.001941 * MotorRight_SpeedErr + 0.001941 * previous_MotorRight_SpeedErr + previous_MotorRight_Cmd;
+  MotorLeft_Cmd = 0.001941 * MotorLeft_SpeedErr
+      + 0.001941 * previous_MotorLeft_SpeedErr + previous_MotorLeft_Cmd;
+  MotorRight_Cmd = 0.001941 * MotorRight_SpeedErr
+      + 0.001941 * previous_MotorRight_SpeedErr + previous_MotorRight_Cmd;
 
   //Set previous value for next command calculation
   previous_MotorLeft_SpeedErr = MotorLeft_SpeedErr;

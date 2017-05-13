@@ -22,13 +22,15 @@
 FATFS fs;         // Work area (file system object) for logical drive
 FIL data_file;  // file objects for data logging
 FIL error_file;  // file objects for error logging
-FRESULT res;        // FatFs function common result code
+//FRESULT res;        // FatFs function common result code
 uint32_t byteread, bytewritten;         // File R/W count
 
-
+// buffer pour sauvegarder des donnees
+static uint8_t Save_String[512];
 
 void SD_Save_Loop()
 {
+  static uint32_t save_counter;
   //turn on led if the data as been saved
   if (f_close(&data_file) == FR_OK) {
     HAL_GPIO_WritePin(GPIOD, LED3_Pin, GPIO_PIN_SET);
@@ -40,10 +42,6 @@ void SD_Save_Loop()
 
   f_open(&data_file, FILENAME, FA_OPEN_EXISTING | FA_WRITE);
   f_lseek(&data_file, f_size(&data_file));
-
-  //save user setting to Backup SRAM
-  //this ram sector wont erase upon power cycling
-  Save_Backup_SRAM(&Backup_Settings);
 
   save_counter++;
 }
@@ -67,13 +65,21 @@ void SD_Save_Init()
     //write file to sd
     f_close(&data_file);
   }
+
+}
+
+void SD_Save_Data(uint8_t *_Save_String)
+{
+  f_puts((char*) _Save_String, &data_file);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   static int i;
   i++;
+  //HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
   //recall all init process
   //pretty slow, but works quite well
+
   if (BSP_SD_Init() == 0) {
     f_mount(&fs, (TCHAR const*) SD_Path, 1);
     f_open(&data_file, FILENAME, FA_OPEN_ALWAYS | FA_WRITE);
@@ -90,4 +96,5 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     //write file to sd
     f_close(&data_file);
   }
+
 }

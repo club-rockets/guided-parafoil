@@ -91,21 +91,18 @@ void HAL_SD_MspInit(SD_HandleTypeDef* sdHandle)
     GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11 
                           |GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF12_SDIO;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = GPIO_PIN_2;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF12_SDIO;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-    /* Peripheral interrupt init */
-    HAL_NVIC_SetPriority(SDIO_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(SDIO_IRQn);
   /* USER CODE BEGIN SDIO_MspInit 1 */
 
   /* USER CODE END SDIO_MspInit 1 */
