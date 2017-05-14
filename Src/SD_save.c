@@ -98,3 +98,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   }
 
 }
+
+void log_message(char *str){
+//  char buff[strlen(str)+3];
+//  strcat(buff, str);
+//  strcat(buff, "\r\n");
+//
+//  WriteInFile(buff, strlen(buff), FILE_NAME_DEBUG);
+//
+//  OSTimeDlyHMSM(0, 0, 0, 1, OS_OPT_TIME_HMSM_STRICT, &err);
+}

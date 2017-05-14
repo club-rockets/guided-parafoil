@@ -35,5 +35,6 @@
 void SD_Save_Loop();
 void SD_Save_Data(uint8_t *_Save_String);
 void SD_Save_Init();
+void log_message(char *str);
 
 #endif /* SD_SAVE_H_ */

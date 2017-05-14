@@ -57,6 +57,7 @@
 #include "direction_error_calculator.h"
 #include "motorcmd.h"
 #include "SD_save.h"
+#include "GPS.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -77,7 +78,7 @@ static void MX_NVIC_Init(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-
+HAL_StatusTypeDef result;
 /* USER CODE END 0 */
 
 int main(void)
@@ -127,6 +128,8 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim6);
 
   SD_Save_Init();
+  GPS_Init();
+
 
   /* USER CODE END 2 */
 
@@ -138,7 +141,8 @@ int main(void)
   /* USER CODE BEGIN 3 */
     //HAL_GPIO_TogglePin(GPIOD, LED1_Pin|LED2_Pin|LED3_Pin|LED4_Pin);
     HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
-    //HAL_Delay(1000);
+    HAL_Delay(200);
+//    GPS_Task();
   }
   /* USER CODE END 3 */
 
