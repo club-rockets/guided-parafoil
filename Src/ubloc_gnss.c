@@ -196,7 +196,6 @@ UBX_StatusTypeDef GNSS_configure(void)
 
 	UART_HandleTypeDef *huart = Parser.hgps->huart;
 	GNSS_HandleTypeDef *hgps  = Parser.hgps;
-	unsigned baudrate = 9600;
 
 	//build the payload
 	ubx_payload_tx_cfg_prt_t *ptrPyld = &(Parser.buf_packet.payload_tx_cfg_prt);
@@ -204,7 +203,7 @@ UBX_StatusTypeDef GNSS_configure(void)
 	memset(ptrPyld, 0, sizeof(Parser.buf_packet.payload_tx_cfg_prt));
 	ptrPyld->portID		    = hgps->Init.portID;
 	ptrPyld->mode		      = UBX_TX_CFG_PRT_MODE;
-	ptrPyld->baudRate	    = baudrate;
+	ptrPyld->baudRate	    = huart->Init.BaudRate;
 	ptrPyld->inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
 	ptrPyld->outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
 

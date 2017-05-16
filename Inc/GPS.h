@@ -58,7 +58,7 @@ Last Modification :
 #define BUFFER_SIZE 250
 
 void GPS_Init();
-void GPS_Task();
+void GPS_Read_Data();
 
 
 #endif /* GPS_H_ */

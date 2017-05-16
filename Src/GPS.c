@@ -29,6 +29,9 @@ void GPS_Init() {
 //  struct raw_subframe_s sframe;
 //  hgps.subFrames = &sframe;
 
+  //release GPS reset
+  HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
+
   UBX_StatusTypeDef response = UBX_CFG_ERROR_BAUD;
 
   while (response != UBX_OK) {
@@ -39,7 +42,7 @@ void GPS_Init() {
 
 }
 
-void GPS_Task() {
+void GPS_Read_Data() {
 
   HAL_StatusTypeDef res;
 

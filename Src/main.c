@@ -123,9 +123,13 @@ int main(void)
   HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
   HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
 
+  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 7900);
+
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim6);
+
+  HAL_Delay(1000);
 
   SD_Save_Init();
   GPS_Init();
@@ -141,8 +145,8 @@ int main(void)
   /* USER CODE BEGIN 3 */
     //HAL_GPIO_TogglePin(GPIOD, LED1_Pin|LED2_Pin|LED3_Pin|LED4_Pin);
     HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
-    HAL_Delay(200);
-//    GPS_Task();
+    //HAL_Delay(200);
+    GPS_Read_Data();
   }
   /* USER CODE END 3 */
 
