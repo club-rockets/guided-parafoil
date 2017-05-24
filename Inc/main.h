@@ -131,10 +131,6 @@
 #define LED3_GPIO_Port GPIOD
 #define LED4_Pin GPIO_PIN_15
 #define LED4_GPIO_Port GPIOD
-#define NOT_USED_PC6_Pin GPIO_PIN_6
-#define NOT_USED_PC6_GPIO_Port GPIOC
-#define NOT_USED_PC7_Pin GPIO_PIN_7
-#define NOT_USED_PC7_GPIO_Port GPIOC
 #define LEFT_CHB_Pin GPIO_PIN_15
 #define LEFT_CHB_GPIO_Port GPIOA
 #define NOT_USED_PD0_Pin GPIO_PIN_0

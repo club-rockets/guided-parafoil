@@ -24,6 +24,7 @@
 /******************************************************************************/
 /*                             Function prototype                             */
 /******************************************************************************/
+void Motor_Init();
 void MotorCMD_Loop();
 void Set_Direction_Error(uint16_t _Direction_Error);
 

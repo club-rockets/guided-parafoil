@@ -417,7 +417,7 @@ void GNSS_log(GNSS_HandleTypeDef *hgps)
 				hgps->gps_position->lon, hgps->gps_position->alt);
 		log_nav(bufPOS, "NAV-POSLLH:");
 		hgps->got_posllh = false;
-		Turn_LED_On(3);
+		//Turn_LED_On(3);
 	}
 	if(hgps->got_sol)
 	{
@@ -426,7 +426,7 @@ void GNSS_log(GNSS_HandleTypeDef *hgps)
 				 hgps->gps_position->satellites_used);
 		log_nav(bufSOL, "NAV-SOL:");
 		hgps->got_sol = false;
-		Turn_LED_On(3);
+		//Turn_LED_On(3);
 	}
 
 //	if(hgps->got_velned)

@@ -83,7 +83,7 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, NOT_USED_PC13_Pin|NOT_USED_PC0_Pin|NOT_USED_PC1_Pin|NOT_USED_PC2_Pin 
-                          |NOT_USED_PC3_Pin|MTi_SYNC_IN_Pin|NOT_USED_PC6_Pin|NOT_USED_PC7_Pin, GPIO_PIN_RESET);
+                          |NOT_USED_PC3_Pin|MTi_SYNC_IN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, NOT_USED_PA2_Pin|NOT_USED_PA3_Pin|MTi_CS_Pin, GPIO_PIN_RESET);
@@ -110,9 +110,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PCPin PCPin PCPin PCPin 
-                           PCPin PCPin PCPin */
+                           PCPin */
   GPIO_InitStruct.Pin = NOT_USED_PC13_Pin|NOT_USED_PC0_Pin|NOT_USED_PC1_Pin|NOT_USED_PC2_Pin 
-                          |NOT_USED_PC3_Pin|NOT_USED_PC6_Pin|NOT_USED_PC7_Pin;
+                          |NOT_USED_PC3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

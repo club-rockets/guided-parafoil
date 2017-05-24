@@ -31,6 +31,18 @@ uint16_t Get_MotorRightPosition();
 uint16_t Get_MotorLeftSpeed();
 uint16_t Get_MotorRightSpeed();
 
+void Motor_Init(){
+
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+
+  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 7900);
+
+  HAL_GPIO_WritePin(TRANS_OE_GPIO_Port, TRANS_OE_Pin, GPIO_PIN_SET);
+}
+
 void MotorCMD_Loop() {
   static uint32_t led_counter;
   static float previous_MotorLeft_SpeedErr, previous_MotorRight_SpeedErr;  //Previous speed error
@@ -71,6 +83,7 @@ void MotorCMD_Loop() {
     led_counter = 0;
     HAL_GPIO_TogglePin(GPIOD, LED1_Pin);
   }
+
 
 }
 

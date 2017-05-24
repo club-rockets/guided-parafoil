@@ -112,27 +112,26 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_TIM4_Init();
   MX_TIM6_Init();
+  MX_USART6_UART_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
 
   /* USER CODE BEGIN 2 */
 
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+  HAL_Delay(1000);
 
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 7900);
-
+  HAL_TIM_Base_Start(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim6);
 
-  HAL_Delay(1000);
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_2);
 
   SD_Save_Init();
-  GPS_Init();
+  //GPS_Init();
+  Motor_Init();
 
 
   /* USER CODE END 2 */
@@ -144,9 +143,9 @@ int main(void)
 
   /* USER CODE BEGIN 3 */
     //HAL_GPIO_TogglePin(GPIOD, LED1_Pin|LED2_Pin|LED3_Pin|LED4_Pin);
-    HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
+    //HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
     //HAL_Delay(200);
-    GPS_Read_Data();
+    //GPS_Read_Data();
   }
   /* USER CODE END 3 */
 
@@ -251,7 +250,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
   if (htim->Instance == TIM3)
   {
-    MotorCMD_Loop();
+    __HAL_TIM_SetCounter(&htim2, 0);
+    htim2.Instance->CNT = 0;
+
+    MotorCMD_Loop(&htim);
+
   }
 
   if (htim->Instance == TIM4)
@@ -263,6 +266,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   {
     SD_Save_Loop();
   }
+
+
 
 }
 /* USER CODE END 4 */
