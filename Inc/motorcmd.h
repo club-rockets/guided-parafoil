@@ -15,17 +15,27 @@
 #define MOTORCMD_H_
 
 #include "string.h"
-#include "math.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_it.h"
+#include "stm32f4xx_hal_tim.h"
 
 #include "tim.h"
+#include "rtc.h"
+#include "SD_save.h"
+
+/******************************************************************************/
+/*                                Define                                      */
+/******************************************************************************/
+#define PGAIN             4
+#define POS_TOLERANCE     10
+#define CMD_STATURATION   12// +/- 12V
+
 
 /******************************************************************************/
 /*                             Function prototype                             */
 /******************************************************************************/
 void Motor_Init();
 void MotorCMD_Loop();
-void Set_Direction_Error(uint16_t _Direction_Error);
+void Set_Direction_Error(int _Direction_Error);
 
 #endif /* MOTORCMD_H_ */

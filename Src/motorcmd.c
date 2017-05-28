@@ -18,64 +18,152 @@
 /******************************************************************************/
 /*                             Global variable                                */
 /******************************************************************************/
-uint16_t MotorLeft_PosCmd, MotorRight_PosCmd;
+int MotorLeft_PosCmd, MotorRight_PosCmd; // Motor position command
+uint16_t PWMLeftSet, PWMRightSet;        // Bool PWM ON/OFF
 
 /******************************************************************************/
 /*                             Function prototype                             */
 /******************************************************************************/
-void Set_MotorLeftPWM(uint16_t _MotorLeftPWM);
-void Set_MotorRightPWM(uint16_t _MotorRightPWM);
-
-uint16_t Get_MotorLeftPosition();
-uint16_t Get_MotorRightPosition();
-uint16_t Get_MotorLeftSpeed();
-uint16_t Get_MotorRightSpeed();
+float SaturateCMD(float _command);
 
 void Motor_Init(){
 
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_2);
 
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 7900);
+  HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_1);
+  HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_2);
+
+  //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+  //HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+  //HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+  //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+
+  PWMLeftSet = 0;
+  PWMRightSet = 0;
+
+  MotorLeft_PosCmd = 300;
+  MotorRight_PosCmd = 300;
+
+  //__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 100);
 
   HAL_GPIO_WritePin(TRANS_OE_GPIO_Port, TRANS_OE_Pin, GPIO_PIN_SET);
 }
 
 void MotorCMD_Loop() {
+
+  static float MotorLeftPos, MotorRightPos;
+  float MotorLeftSpeed, MotorRightSpeed;
+  int LeftCnt, RightCnt;
+
+  /*  Motor driver  */
   static uint32_t led_counter;
   static float previous_MotorLeft_SpeedErr, previous_MotorRight_SpeedErr;  //Previous speed error
   static float previous_MotorLeft_Cmd, previous_MotorRight_Cmd;  //Previous motor command
 
-  uint16_t MotorLeft_PosErr, MotorRight_PosErr;     //Axial positionning error
-  uint16_t MotorLeft_SpeedCmd, MotorRight_SpeedCmd;  //Speed command
+  float MotorLeft_PosErr, MotorRight_PosErr;     //Axial positionning error
+  float MotorLeft_SpeedCmd, MotorRight_SpeedCmd;  //Speed command
   float MotorLeft_SpeedErr, MotorRight_SpeedErr;    //Axial speed error
   float MotorLeft_Cmd, MotorRight_Cmd;              //Motor command
+  int MotorLeft_PWM, MotorRight_PWM;              //Motor command
 
+  /* SD card  */
+  static uint8_t Save_String[512];                  //SD card write buffer
+
+  /* Encoder read */
+  LeftCnt = __HAL_TIM_GET_COUNTER(&htim2) - 25000;
+  __HAL_TIM_SetCounter(&htim2, 25000);
+
+  MotorLeftPos += LeftCnt / 41.0;//2 pi (rad/s)/256 (pulse) = 1/41
+  MotorLeftSpeed = LeftCnt / 2.0;// 2 pi (rad/s) / (256 (pulse))
+
+  RightCnt = __HAL_TIM_GET_COUNTER(&htim5) - 25000;
+  __HAL_TIM_SetCounter(&htim5, 25000);
+
+  MotorRightPos += RightCnt / 41.0;//2 pi (rad/s)/256 (pulse) = 1/41
+  MotorRightSpeed = RightCnt / 2.0;// 2 pi (rad/s) / (256 (pulse))
+
+
+  /*  Motor command */
   //Calculation of the motor axial position error
-  MotorLeft_PosErr = MotorLeft_PosCmd - Get_MotorLeftPosition();
-  MotorRight_PosErr = MotorRight_PosCmd - Get_MotorRightPosition();
+  MotorLeft_PosErr = MotorLeft_PosCmd - MotorLeftPos;
+  MotorRight_PosErr = MotorRight_PosCmd - MotorRightPos;
 
   //Calculation of the speed command
   MotorLeft_SpeedCmd = 1.374 * MotorLeft_PosErr;
   MotorRight_SpeedCmd = 1.374 * MotorRight_PosErr;
 
   //Calculation of the axial speed error
-  MotorLeft_SpeedErr = MotorLeft_SpeedCmd - Get_MotorLeftSpeed();
-  MotorRight_SpeedErr = MotorRight_SpeedCmd - Get_MotorRightSpeed();
+  MotorLeft_SpeedErr = MotorLeft_SpeedCmd - MotorLeftSpeed;
+  MotorRight_SpeedErr = MotorRight_SpeedCmd - MotorRightSpeed;
 
   //Calculation of the motor command
-  MotorLeft_Cmd = 0.001941 * MotorLeft_SpeedErr
-      + 0.001941 * previous_MotorLeft_SpeedErr + previous_MotorLeft_Cmd;
-  MotorRight_Cmd = 0.001941 * MotorRight_SpeedErr
-      + 0.001941 * previous_MotorRight_SpeedErr + previous_MotorRight_Cmd;
+  MotorLeft_Cmd = SaturateCMD(0.002 * MotorLeft_SpeedErr
+      + 0.005 * previous_MotorLeft_SpeedErr + previous_MotorLeft_Cmd);//0.001941
+  MotorRight_Cmd = SaturateCMD(0.002 * MotorRight_SpeedErr
+      + 0.005 * previous_MotorRight_SpeedErr + previous_MotorRight_Cmd);
+
+   MotorLeft_PWM = -341 * MotorLeft_Cmd + 4200;//(8300 - 4200)/(12 - 0) = 341
+   MotorRight_PWM = 341 * MotorRight_Cmd + 4200;//(8300 - 4200)/(12 - 0) = 341
+
+   //Left motor PWM set
+   if ((MotorLeft_PosErr < POS_TOLERANCE)&&(MotorLeft_PosErr > -POS_TOLERANCE))
+   {
+     if (PWMLeftSet != 0)
+     {
+       //Deactivate PWM
+       HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
+       HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_2);
+       PWMLeftSet = 0;
+     }
+   }
+   else
+   {
+     if (PWMLeftSet == 0)
+     {
+       HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+       HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+       PWMLeftSet = 1;
+     }
+   }
+   //Set PWM
+   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, MotorLeft_PWM);
+
+   //Right motor PWM set
+   if ((MotorRight_PosErr < POS_TOLERANCE)&&(MotorRight_PosErr > -POS_TOLERANCE))
+      {
+        if (PWMRightSet != 0)
+        {
+          //Deactivate PWM
+          HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
+          HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_3);
+          PWMRightSet = 0;
+        }
+      }
+      else
+      {
+        if (PWMRightSet == 0)
+        {
+          HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+          HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+          PWMRightSet = 1;
+        }
+      }
+      //Set PWM
+      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, MotorRight_PWM);
 
   //Set previous value for next command calculation
   previous_MotorLeft_SpeedErr = MotorLeft_SpeedErr;
   previous_MotorRight_SpeedErr = MotorRight_SpeedErr;
   previous_MotorLeft_Cmd = MotorLeft_Cmd;
   previous_MotorRight_Cmd = MotorRight_Cmd;
+
+  /***************************************************
+   * SD save in buffer
+   ***************************************************/
+  sprintf((char*) (Save_String), "%s,%i,%i", "SGP_MD",MotorLeft_PosCmd, MotorLeftPos);
+
+  SD_Save_Data(Save_String);
 
   if (led_counter < 20) {
     led_counter++;
@@ -87,46 +175,25 @@ void MotorCMD_Loop() {
 
 }
 
-void Set_Direction_Error(uint16_t _Direction_Error) {
+void Set_Direction_Error(int _Direction_Error) {
   if (_Direction_Error > 0) {
-    MotorLeft_PosCmd = _Direction_Error + 300;
+    MotorLeft_PosCmd = PGAIN * _Direction_Error + 300;
     MotorRight_PosCmd = 300;
   } else {
     MotorLeft_PosCmd = 300;
-    MotorRight_PosCmd = -_Direction_Error + 300;
+    MotorRight_PosCmd = -PGAIN * _Direction_Error + 300;
   }
 }
 
-void Set_MotorLeftPWM(uint16_t _MotorLeftPWM) {
-  if (_MotorLeftPWM > 7900)
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 7900);
-  else if (_MotorLeftPWM < 0)
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-  else
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, _MotorLeftPWM);
-}
-
-void Set_MotorRightPWM(uint16_t _MotorRightPWM) {
-  if (_MotorRightPWM > 7900)
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 7900);
-  else if (_MotorRightPWM < 0)
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-  else
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, _MotorRightPWM);
-}
-
-uint16_t Get_MotorLeftPosition() {
-  return 0;
-}
-
-uint16_t Get_MotorRightPosition() {
-  return 0;
-}
-
-uint16_t Get_MotorLeftSpeed() {
-  return 0;
-}
-
-uint16_t Get_MotorRightSpeed() {
-  return 0;
+float SaturateCMD(float _command)
+{
+  if (_command > CMD_STATURATION)
+   {
+     return CMD_STATURATION;
+   }
+  else if (_command < -CMD_STATURATION)
+   {
+     return -CMD_STATURATION;
+   }
+  return _command;
 }

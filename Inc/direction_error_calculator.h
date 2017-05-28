@@ -22,14 +22,12 @@
 #include "rtc.h"
 #include "tim.h"
 #include "SD_save.h"
+#include "motorcmd.h"
 
 /******************************************************************************/
 /*                             Global variable                                */
 /******************************************************************************/
-//RTC time and date handler
-RTC_TimeTypeDef sTime;
-RTC_DateTypeDef sDate;
-RTC_AlarmTypeDef sAlarm;
+
 
 /******************************************************************************/
 /*                             Function prototype                             */

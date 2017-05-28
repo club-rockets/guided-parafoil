@@ -15,27 +15,35 @@
 
 #include "direction_error_calculator.h"
 
-/******************************************************************************/
-/*                             Global variable                                */
-/******************************************************************************/
-// buffer pour sauvegarder des donnees
-static uint8_t Save_String[512];
+uint16_t test_var = 0;
 
 void Direction_Error_Calculator_Loop() {
+  // buffer pour sauvegarder des donnees
+  uint8_t Save_String[512];
+  static uint32_t led_counter;
+
   HAL_GPIO_TogglePin(GPIOD, LED2_Pin);
 
-  /***************************************************
-   * update real time clock variable before save
-   ***************************************************/
-  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+  if (led_counter < 7) {
+    led_counter++;
+  } else {
+    led_counter = 0;
+    if (test_var != 0)
+    {
+      Set_Direction_Error(-1400);
+      test_var = 0;
+    }
+    else
+    {
+      Set_Direction_Error(1400);
+      test_var = 1;
+    }
+  }
 
   /***************************************************
    * SD save in buffer
    ***************************************************/
-  sprintf((char*) (Save_String), "20%02d-%02d-%02dT%02d:%02d:%02d,%i\n",
-          sDate.Year, sDate.Month, sDate.Date, sTime.Hours, sTime.Minutes,
-          sTime.Seconds, 100);
+  sprintf((char*) (Save_String), "%s,%i", "SGP_Control", 100);
 
   SD_Save_Data(Save_String);
 }

@@ -126,9 +126,6 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim6);
 
-  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1);
-  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_2);
-
   SD_Save_Init();
   //GPS_Init();
   Motor_Init();
@@ -250,10 +247,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
   if (htim->Instance == TIM3)
   {
-    __HAL_TIM_SetCounter(&htim2, 0);
-    htim2.Instance->CNT = 0;
-
-    MotorCMD_Loop(&htim);
+    MotorCMD_Loop();
 
   }
 
