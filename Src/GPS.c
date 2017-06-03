@@ -1,6 +1,6 @@
 #include "GPS.h"
 
-uint8_t bufferRTK[BUFFER_SIZE] = { 0 };
+uint8_t uart_rx[256] = {0};
 GNSS_HandleTypeDef hgps;
 
 void GPS_Init() {
@@ -40,23 +40,26 @@ void GPS_Init() {
   }
   HAL_GPIO_WritePin(GPIOD, LED4_Pin, GPIO_PIN_RESET);
 
+  HAL_UART_Receive_IT(&huart2, uart_rx, 100);
 }
 
-void GPS_Read_Data() {
-
-  HAL_StatusTypeDef res;
-
-  res = HAL_UART_Receive(&huart2, bufferRTK, BUFFER_SIZE, 200);
+void GPS_Read_Data(uint8_t * GPS_Read_Data) {
 
   int i = 0;
-  for (i = 0; i < BUFFER_SIZE; i++) {
-    parse_char(bufferRTK[i]);
-  }
 
-  if (res == HAL_OK){
-    SD_Save_Data(bufferRTK);
-  }
+  /* SD card  */
+  uint8_t Save_String[512];                  //SD card write buffer
 
+
+    for (i = 0; i < BUFFER_SIZE; i++)
+      parse_char(uart_rx[i]);
+
+    /***************************************************
+     * SD save in buffer
+     ***************************************************/
+    sprintf((char*) (Save_String), "%s,%i", "GPS_Data", hgps.gps_position->fix_type);
+
+    SD_Save_Data(Save_String);
 //  if (hgps.got_posllh || hgps.got_sol) {
 //
 //    hgps.got_posllh = false;
@@ -71,5 +74,20 @@ void GPS_Read_Data() {
 ////  Set_Altitude((hgps.gps_position->alt) / 1000.0);
 //  }
 
+}
+
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+
+  if(huart->Instance == USART2){
+
+    GPS_Read_Data(uart_rx);
+
+    HAL_UART_Receive_IT(&huart2, uart_rx, 100);
+  }
+
 
 }
+
+

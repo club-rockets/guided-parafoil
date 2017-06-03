@@ -161,11 +161,11 @@ void MotorCMD_Loop() {
   /***************************************************
    * SD save in buffer
    ***************************************************/
-  sprintf((char*) (Save_String), "%s,%i,%i", "SGP_MD",MotorLeft_PosCmd, MotorLeftPos);
+  //sprintf((char*) (Save_String), "%s,%i,%i", "SGP_MD",MotorLeft_PosCmd, MotorLeftPos);
 
-  SD_Save_Data(Save_String);
+  //SD_Save_Data(Save_String);
 
-  if (led_counter < 20) {
+  if (led_counter < 19) {
     led_counter++;
   } else {
     led_counter = 0;
@@ -175,14 +175,9 @@ void MotorCMD_Loop() {
 
 }
 
-void Set_Direction_Error(int _Direction_Error) {
-  if (_Direction_Error > 0) {
-    MotorLeft_PosCmd = PGAIN * _Direction_Error + 300;
-    MotorRight_PosCmd = 300;
-  } else {
-    MotorLeft_PosCmd = 300;
-    MotorRight_PosCmd = -PGAIN * _Direction_Error + 300;
-  }
+void Set_Motor_Command(int _MotorLeft_PosCmd, int _MotorRight_PosCmd) {
+  MotorLeft_PosCmd = _MotorLeft_PosCmd;
+  MotorRight_PosCmd = _MotorRight_PosCmd;
 }
 
 float SaturateCMD(float _command)

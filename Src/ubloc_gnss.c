@@ -588,7 +588,7 @@ int  parse_char(const uint8_t b)
 		case UBX_DECODE_CHKSUM1:
 			//		countG =0;
 			if (Parser.rx_ck_a != b) {
-				HAL_GPIO_TogglePin(GPIOI, GPIO_PIN_9);
+				//HAL_GPIO_TogglePin(GPIOI, GPIO_PIN_9);
 				//log_message("ubx checksum1 err ");
 				UBX_resetParser();
 			} else {
@@ -599,7 +599,7 @@ int  parse_char(const uint8_t b)
 			/* Expecting second checksum byte */
 		case UBX_DECODE_CHKSUM2:
 			if (Parser.rx_ck_b != b) {
-				HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+				//HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
 			} else {
 				ret = payload_rx_done();	// finish payload processing
 			}
@@ -1120,7 +1120,7 @@ static int payload_rx_done(void)
 		break;
 
 	case UBX_MSG_RXM_SFRBX:
-		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
+		//HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
 		hgps->got_subFrame = true;
 		ret = 2;
 		break;
@@ -1336,40 +1336,4 @@ static uint32_t fnv1_32_str(uint8_t *str, uint32_t hval)
 	/* return our new hash value */
 	return hval;
 }
-
-/**
- * @brief  Rx Transfer completed callbacks.
- * @param  huart: pointer to a UART_HandleTypeDef structure that contains
- *                the configuration information for the specified UART module.
- * @retval None
- */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	//	HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_8);
-
-	int i;
-	for(i =RECEIVE_COUNT/2; i < RECEIVE_COUNT; i++){
-		parse_char(Parser.buf_reception[i]);
-	}
-	semGpsGate++;
-
-}
-/**
- * @brief  Tx Half Transfer completed callbacks.
- * @param  huart: pointer to a UART_HandleTypeDef structure that contains
- *                the configuration information for the specified UART module.
- * @retval None
- */
-void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
-{
-	//	HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_8);
-	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
-	int i;
-	for(i =0; i < RECEIVE_COUNT/2; i++){
-		parse_char(Parser.buf_reception[i]);
-	}
-	semGpsGate++;
-
-}
-/* END OF FILE */
 

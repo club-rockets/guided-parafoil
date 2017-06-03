@@ -54,11 +54,14 @@ Last Modification :
 /* USER CODE BEGIN Includes */
 #include "ubloc_gnss.h"
 #include "usart.h"
+#include "SD_save.h"
 
 #define BUFFER_SIZE 250
 
+
+
 void GPS_Init();
-void GPS_Read_Data();
+void GPS_Read_Data(uint8_t * GPS_RX);
 
 
 #endif /* GPS_H_ */

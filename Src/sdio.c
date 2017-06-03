@@ -133,9 +133,6 @@ void HAL_SD_MspDeInit(SD_HandleTypeDef* sdHandle)
 
     HAL_GPIO_DeInit(GPIOD, GPIO_PIN_2);
 
-    /* Peripheral interrupt Deinit*/
-    HAL_NVIC_DisableIRQ(SDIO_IRQn);
-
   }
   /* USER CODE BEGIN SDIO_MspDeInit 1 */
 

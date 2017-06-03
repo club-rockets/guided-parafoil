@@ -57,11 +57,12 @@ void SysTick_Handler(void);
 void EXTI3_IRQHandler(void);
 void TIM3_IRQHandler(void);
 void TIM4_IRQHandler(void);
-void SDIO_IRQHandler(void);
+void USART2_IRQHandler(void);
 void TIM6_DAC_IRQHandler(void);
 void CAN2_RX0_IRQHandler(void);
 void CAN2_RX1_IRQHandler(void);
 void OTG_FS_IRQHandler(void);
+void USART6_IRQHandler(void);
 
 #ifdef __cplusplus
 }

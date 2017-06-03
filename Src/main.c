@@ -54,6 +54,14 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
+#include "string.h"
+#include "stdlib.h"
+#include "usb_device.h"
+#include "usbd_core.h"
+#include "usbd_desc.h"
+#include "usbd_cdc.h"
+#include "usbd_cdc_if.h"
+
 #include "direction_error_calculator.h"
 #include "motorcmd.h"
 #include "SD_save.h"
@@ -64,6 +72,9 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+//buffer pour le virtual com port USB
+uint8_t USB_CDC_RX[64] = { 0 };
+uint8_t USB_CDC_TX[64] = { 0 };
 
 /* USER CODE END PV */
 
@@ -85,6 +96,8 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+
+  int val = 0;
 
   /* USER CODE END 1 */
 
@@ -126,8 +139,10 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim6);
 
+
+
   SD_Save_Init();
-  //GPS_Init();
+  GPS_Init();
   Motor_Init();
 
 
@@ -141,8 +156,30 @@ int main(void)
   /* USER CODE BEGIN 3 */
     //HAL_GPIO_TogglePin(GPIOD, LED1_Pin|LED2_Pin|LED3_Pin|LED4_Pin);
     //HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
-    //HAL_Delay(200);
+
     //GPS_Read_Data();
+
+    /***************************************************
+     * USB SERIAL COM PORT - programation de l'altimetre
+     ***************************************************/
+
+    //code test pour programmer l'horloge
+    //est presentement utilisé avec des script sur teraterm
+    //rx is done elsewhere in usb_cdc_if.c
+    if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
+
+      if (USB_CDC_RX[0] == 's') {
+
+
+        HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
+        val = atoi(&USB_CDC_RX[4]);
+
+        itoa('s', USB_CDC_TX, 10);
+        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+        USB_CDC_RX[0] = 0;
+      }
+    }
   }
   /* USER CODE END 3 */
 
@@ -165,7 +202,7 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -220,22 +257,19 @@ static void MX_NVIC_Init(void)
   HAL_NVIC_SetPriority(EXTI3_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(EXTI3_IRQn);
   /* TIM3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(TIM3_IRQn, 3, 0);
   HAL_NVIC_EnableIRQ(TIM3_IRQn);
   /* TIM4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM4_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(TIM4_IRQn, 4, 0);
   HAL_NVIC_EnableIRQ(TIM4_IRQn);
-  /* SDIO_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SDIO_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(SDIO_IRQn);
   /* TIM6_DAC_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 2, 0);
   HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
   /* CAN2_RX0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(CAN2_RX0_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(CAN2_RX0_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(CAN2_RX0_IRQn);
   /* CAN2_RX1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(CAN2_RX1_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(CAN2_RX1_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(CAN2_RX1_IRQn);
   /* OTG_FS_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(OTG_FS_IRQn, 0, 0);

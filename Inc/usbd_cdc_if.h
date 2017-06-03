@@ -51,6 +51,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc.h"
 /* USER CODE BEGIN INCLUDE */
+#include "gpio.h"
 /* USER CODE END INCLUDE */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -76,6 +77,7 @@
   * @{
   */  
 /* USER CODE BEGIN EXPORTED_TYPES */
+ extern uint8_t USB_CDC_RX[];
 /* USER CODE END EXPORTED_TYPES */
 
 /**

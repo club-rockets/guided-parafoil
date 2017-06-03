@@ -27,7 +27,7 @@
 /*                                Define                                      */
 /******************************************************************************/
 #define PGAIN             4
-#define POS_TOLERANCE     10
+#define POS_TOLERANCE     10// +/- 10LSB
 #define CMD_STATURATION   12// +/- 12V
 
 
@@ -36,6 +36,6 @@
 /******************************************************************************/
 void Motor_Init();
 void MotorCMD_Loop();
-void Set_Direction_Error(int _Direction_Error);
+void Set_Motor_Command(int _MotorLeft_PosCmd, int _MotorRight_PosCmd);
 
 #endif /* MOTORCMD_H_ */
