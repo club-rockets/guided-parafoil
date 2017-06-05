@@ -11,8 +11,8 @@
  Ecole de Technologies Superieures
  *********************************************************************************************/
 
-#ifndef DIRECTION_ERROR_CALCULATOR_H_
-#define DIRECTION_ERROR_CALCULATOR_H_
+#ifndef SGP_CONTROL_H_
+#define SGP_CONTROL_H_
 
 #include "string.h"
 #include "math.h"
@@ -25,6 +25,35 @@
 #include "motorcmd.h"
 
 /******************************************************************************/
+/*                              Type  Prototype                               */
+/******************************************************************************/
+typedef enum Rocket_State_m {
+  INITIALISATION = 0,
+  STANDBY_ON_PAD,
+  LAUNCH,
+  POWERED_ASCENT,
+  ENGINE_BURNOUT,
+  COASTING_ASCENT,
+  APOGEE_REACHED,
+  DROGUE_DEPLOYMENT,
+  DROGUE_DESCENT,
+  MAIN_DEPLOYMENT,
+  MAIN_DESCENT,
+  LANDING,
+  RECOVERY,
+  PICKEDUP
+} Rocket_State_t;
+
+typedef enum SGP_Control_State_m {
+  SGP_INIT = 0,
+  CALIBRATION_PHASE,
+  LOOP_PHASE,
+  DIRECT_APPROACH_PHASE,
+  LANDING_PHASE,
+  ON_THE_GROUND_PHASE
+} SGP_Control_State_t;
+
+/******************************************************************************/
 /*                             Global variable                                */
 /******************************************************************************/
 
@@ -32,6 +61,6 @@
 /******************************************************************************/
 /*                             Function prototype                             */
 /******************************************************************************/
-void Direction_Error_Calculator_Loop();
+void SGP_Control_Loop();
 
-#endif /* DIRECTION_ERROR_CALCULATOR_H_ */
+#endif /* SGP_CONTROL_H_ */

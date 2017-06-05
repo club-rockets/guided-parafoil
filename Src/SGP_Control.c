@@ -13,11 +13,17 @@
  every ISR is called here and passes global variable
  *********************************************************************************************/
 
-#include "direction_error_calculator.h"
+#include "SGP_Control.h"
 
 uint16_t test_var = 0;
 
-void Direction_Error_Calculator_Loop() {
+
+void SGP_Control_Init()
+{
+
+}
+
+void SGP_Control_Loop() {
   // buffer pour sauvegarder des donnees
   uint8_t Save_String[512];
   static uint32_t led_counter;
@@ -27,6 +33,10 @@ void Direction_Error_Calculator_Loop() {
 
   HAL_GPIO_TogglePin(GPIOD, LED2_Pin);
 
+
+  switch (temp_rocket->Rocket_State) {
+
+      case INITIALISATION:
   if (led_counter < 8) {
     led_counter++;
   } else {

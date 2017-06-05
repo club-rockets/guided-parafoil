@@ -41,6 +41,7 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
+#include <SGP_Control.h>
 #include "main.h"
 #include "stm32f4xx_hal.h"
 #include "can.h"
@@ -62,7 +63,6 @@
 #include "usbd_cdc.h"
 #include "usbd_cdc_if.h"
 
-#include "direction_error_calculator.h"
 #include "motorcmd.h"
 #include "SD_save.h"
 #include "GPS.h"
@@ -72,9 +72,20 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-//buffer pour le virtual com port USB
+
+//Buffer for virtual com port USB
 uint8_t USB_CDC_RX[64] = { 0 };
 uint8_t USB_CDC_TX[64] = { 0 };
+
+//Buffer for GPS Ublox data frame
+uint8_t usart2_rx[256] = {0};
+uint8_t usart6_rx[256] = {0};
+
+uint8_t GPS1_frame[256] = {0};//USART2 Buffer
+uint8_t GPS2_frame[256] = {0};//USART6 Buffer
+
+//Data frame parse flag
+uint8_t GPS1_FrameRdy, GPS2_FrameRdy = 0;
 
 /* USER CODE END PV */
 
@@ -134,17 +145,18 @@ int main(void)
 
   HAL_Delay(1000);
 
+  SD_Save_Init();
+  GPS_Init();
+  Motor_Init();
+
+  //TIMER START
   HAL_TIM_Base_Start(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim6);
 
-
-
-  SD_Save_Init();
-  GPS_Init();
-  Motor_Init();
-
+  //USART_START
+  HAL_UART_Receive_IT(&huart2, usart2_rx, 100);
 
   /* USER CODE END 2 */
 
@@ -154,13 +166,16 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-    //HAL_GPIO_TogglePin(GPIOD, LED1_Pin|LED2_Pin|LED3_Pin|LED4_Pin);
-    //HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
 
-    //GPS_Read_Data();
+    //GPS1 Frame parse launcher
+    if (GPS1_FrameRdy != 0)
+    {
+      GPS_Read_Data(GPS1_frame);
+      GPS1_FrameRdy = 0;
+    }
 
     /***************************************************
-     * USB SERIAL COM PORT - programation de l'altimetre
+     * USB SERIAL COM PORT
      ***************************************************/
 
     //code test pour programmer l'horloge
@@ -172,9 +187,11 @@ int main(void)
 
 
         HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
-        val = atoi(&USB_CDC_RX[4]);
+        //val = atoi(&USB_CDC_RX[4]);
 
-        itoa('s', USB_CDC_TX, 10);
+        //itoa(115, USB_CDC_TX, 10);
+
+        strcpy(USB_CDC_TX,"Configuration mode\n");
         CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
         USB_CDC_RX[0] = 0;
@@ -282,12 +299,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM3)
   {
     MotorCMD_Loop();
-
   }
 
   if (htim->Instance == TIM4)
   {
-    Direction_Error_Calculator_Loop();
+    SGP_Control_Loop();
   }
 
   if (htim->Instance == TIM6)
@@ -295,7 +311,30 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     SD_Save_Loop();
   }
 
+}
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+
+  uint8_t Save_String[512];
+
+  //GPS1 UBX frame caption
+  if(huart->Instance == USART2){
+
+    if (GPS1_FrameRdy != 0)
+    {
+
+      sprintf((char*) (Save_String), "%s,%s", "GPS_Error", "GPS frame skipped");
+      SD_Save_Data(Save_String);
+
+    } else {
+
+      memcpy(GPS1_frame,usart2_rx, 100);
+      GPS1_FrameRdy = 1;
+
+    }
+
+    HAL_UART_Receive_IT(&huart2, usart2_rx, 100);
+  }
 
 }
 /* USER CODE END 4 */

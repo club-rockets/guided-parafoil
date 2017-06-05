@@ -25,9 +25,6 @@ FIL error_file;  // file objects for error logging
 //FRESULT res;        // FatFs function common result code
 uint32_t byteread, bytewritten;         // File R/W count
 
-// buffer pour sauvegarder des donnees
-static uint8_t Save_String[512];
-
 void SD_Save_Loop()
 {
   static uint32_t save_counter;
@@ -48,6 +45,7 @@ void SD_Save_Loop()
 
 void SD_Save_Init()
 {
+  uint8_t Save_String[512];
   //init de fatfs et de la SD
   if (BSP_SD_Init() == 0) {
     f_mount(&fs, (TCHAR const*) SD_Path, 1);
@@ -75,7 +73,7 @@ void SD_Save_Data(uint8_t *_Save_String)
   RTC_DateTypeDef sDate;
 
   // buffer pour sauvegarder des donnees
-  static uint8_t Save_String[512];
+  uint8_t Save_String[512];
 
   //SD card write
   HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
@@ -92,8 +90,9 @@ void SD_Save_Data(uint8_t *_Save_String)
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-  static int i;
-  i++;
+
+  uint8_t Save_String[512];
+
   //HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
   //recall all init process
   //pretty slow, but works quite well
