@@ -2,6 +2,9 @@
 
 GNSS_HandleTypeDef hgps;
 
+PolarGPS_Coordinate_t PolarGPS_Coordinate = { .altitude = 0.0, .longitude = 0.0, .latitude = 0.0 };
+uint8_t CoordinateUpdated = 0;
+
 void GPS_Init() {
   hgps.Init.baudrate = huart2.Init.BaudRate;
   hgps.Init.portID = UBLOC_UART1;
@@ -51,12 +54,31 @@ void GPS_Read_Data(uint8_t * GPS_Read_Data) {
   for (i = 0; i < BUFFER_SIZE; i++)
     parse_char(GPS_Read_Data[i]);
 
+  PolarGPS_Coordinate.altitude = hgps.gps_position->alt / 1000.0;
+  PolarGPS_Coordinate.latitude = hgps.gps_position->lat / 10000000.0;
+  PolarGPS_Coordinate.longitude = hgps.gps_position->lon / 10000000.0;
+
+  CoordinateUpdated = 1;
+
   /***************************************************
    * SD save in buffer
    ***************************************************/
-  sprintf((char*) (Save_String), "%s,%i", "GPS_Data", hgps.gps_position->fix_type);
 
+  /*
+   * https://www.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_%28UBX-13003221%29_Public.pdf
+   * p 225
+  GPSfix Type, range 0..5
+  0x00 = No Fix
+  0x01 = Dead Reckoning only
+  0x02 = 2D-Fix
+  0x03 = 3D-Fix
+  0x04 = GPS + dead reckoning combined
+  0x05 = Time only fix
+  0x06..0xff: reserved
+  */
+  sprintf((char*) (Save_String), "%s,%i,%f,%f,%f", "GPS_Data", hgps.gps_position->fix_type, PolarGPS_Coordinate.altitude, PolarGPS_Coordinate.latitude, PolarGPS_Coordinate.longitude);
   SD_Save_Data(Save_String);
+
 //  if (hgps.got_posllh || hgps.got_sol) {
 //
 //    hgps.got_posllh = false;
@@ -71,4 +93,28 @@ void GPS_Read_Data(uint8_t * GPS_Read_Data) {
 ////  Set_Altitude((hgps.gps_position->alt) / 1000.0);
 //  }
 
+}
+
+PolarGPS_Coordinate_t GPS_GetCoordinate()
+{
+  CoordinateUpdated = 0;
+  return PolarGPS_Coordinate;
+}
+
+CartesianGPS_Coordinate_t GPS_GetCartesianCoordinate(PolarGPS_Coordinate_t _PolarDest_Coordinate)
+{
+  CartesianGPS_Coordinate_t CartesianGPS_Coordinate;
+
+  CartesianGPS_Coordinate.altitude = PolarGPS_Coordinate.altitude;
+  CartesianGPS_Coordinate.y = (_PolarDest_Coordinate.latitude - PolarGPS_Coordinate.latitude) * LAT_DEGREEVALUE;
+  CartesianGPS_Coordinate.x = (_PolarDest_Coordinate.longitude - PolarGPS_Coordinate.longitude) * LON_DEGREEVALUE;
+
+  CoordinateUpdated = 0;
+
+  return CartesianGPS_Coordinate;
+}
+
+uint8_t IsCoordinateUpdated()
+{
+  return CoordinateUpdated;
 }

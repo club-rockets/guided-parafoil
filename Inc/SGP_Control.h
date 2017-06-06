@@ -23,6 +23,7 @@
 #include "tim.h"
 #include "SD_save.h"
 #include "motorcmd.h"
+#include "GPS.h"
 
 /******************************************************************************/
 /*                              Type  Prototype                               */
@@ -46,21 +47,26 @@ typedef enum Rocket_State_m {
 
 typedef enum SGP_Control_State_m {
   SGP_INIT = 0,
+  SGP_STANDBY,
   CALIBRATION_PHASE,
   LOOP_PHASE,
   DIRECT_APPROACH_PHASE,
   LANDING_PHASE,
-  ON_THE_GROUND_PHASE
+  ON_THE_GROUND_PHASE,
+  MOTOR_TEST
 } SGP_Control_State_t;
 
 /******************************************************************************/
 /*                             Global variable                                */
 /******************************************************************************/
 
-
 /******************************************************************************/
 /*                             Function prototype                             */
 /******************************************************************************/
+void SGP_Control_Init();
 void SGP_Control_Loop();
+void Set_Destination(PolarGPS_Coordinate_t _PolarDest_Coordinate);
+void Set_RocketState(Rocket_State_t _Rocket_State);
+Rocket_State_t Get_RocketState();
 
 #endif /* SGP_CONTROL_H_ */

@@ -58,10 +58,42 @@ Last Modification :
 
 #define BUFFER_SIZE 250
 
+//http://www.csgnetwork.com/degreelenllavcalc.html
+//Space port latitude = 32.990254 degrees
+//#define LAT_DEGREEVALUE 110904.26;
+//#define LON_DEGREEVALUE 93463.46;
 
+//Las cruces latitude = 32.32 degrees
+//#define LAT_DEGREEVALUE 110892.40;
+//#define LON_DEGREEVALUE 94163.45;
 
+//Las cruces latitude = 45.5087 degrees
+#define LAT_DEGREEVALUE 111141.69;
+#define LON_DEGREEVALUE 78146.00;
+
+/******************************************************************************/
+/*                              Type  Prototype                               */
+/******************************************************************************/
+
+typedef struct PolarGPS_Coordinate_s {
+  float latitude;
+  float longitude;
+  float altitude;
+} PolarGPS_Coordinate_t;
+
+typedef struct CartesianGPS_Coordinate_s {
+  float x;
+  float y;
+  float altitude;
+} CartesianGPS_Coordinate_t;
+
+/******************************************************************************/
+/*                             Function prototype                             */
+/******************************************************************************/
 void GPS_Init();
 void GPS_Read_Data(uint8_t * GPS_RX);
+PolarGPS_Coordinate_t GPS_GetCoordinate();
+CartesianGPS_Coordinate_t GPS_GetCartesianCoordinate(PolarGPS_Coordinate_t _PolarDest_Coordinate);
 
 
 #endif /* GPS_H_ */

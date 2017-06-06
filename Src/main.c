@@ -148,6 +148,7 @@ int main(void)
   SD_Save_Init();
   GPS_Init();
   Motor_Init();
+  SGP_Control_Init();
 
   //TIMER START
   HAL_TIM_Base_Start(&htim2);

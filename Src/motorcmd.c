@@ -161,9 +161,9 @@ void MotorCMD_Loop() {
   /***************************************************
    * SD save in buffer
    ***************************************************/
-  //sprintf((char*) (Save_String), "%s,%i,%i", "SGP_MD",MotorLeft_PosCmd, MotorLeftPos);
+  sprintf((char*) (Save_String), "%s,%f,%f,%f,%f", "SGP_MD",MotorLeft_Cmd, MotorRight_Cmd, MotorLeftPos, MotorRightPos);
 
-  //SD_Save_Data(Save_String);
+  SD_Save_Data(Save_String);
 
   if (led_counter < 19) {
     led_counter++;
