@@ -36,6 +36,14 @@
 /******************************************************************************/
 void Motor_Init();
 void MotorCMD_Loop();
+int Get_LeftMotor_command();
+int Get_RightMotor_command();
+float Get_LeftMotor_position();
+float Get_RightMotor_position();
 void Set_Motor_Command(int _MotorLeft_PosCmd, int _MotorRight_PosCmd);
+void config_Motor_Command(int _MotorLeft_ConfCmd, int _MotorRight_ConfCmd);
+void MotorPos_Reset();
+void Enable_MotorCMD();
+void Disable_MotorCMD();
 
 #endif /* MOTORCMD_H_ */

@@ -135,6 +135,11 @@ void SGP_Control_Loop() {
       case MOTOR_TEST:
 
 
+        if (motor_testCounter == 0)
+        {
+          Enable_MotorCMD();
+        }
+
         if (motor_testCounter < 10) {
 
           MotorLeft_PosCmd = 5000;
@@ -149,6 +154,7 @@ void SGP_Control_Loop() {
 
           MotorLeft_PosCmd = 0;
           MotorRight_PosCmd = 0;
+          Disable_MotorCMD();
           SGP_Control_State = SGP_INIT;
 
         }

@@ -87,6 +87,13 @@ uint8_t GPS2_frame[256] = {0};//USART6 Buffer
 //Data frame parse flag
 uint8_t GPS1_FrameRdy, GPS2_FrameRdy = 0;
 
+//temp
+uint8_t temp_val = 0;
+// buffer pour comm CANbus
+CanTxMsgTypeDef CanTx_msg;
+CanRxMsgTypeDef CanRx_msg;
+CAN_FilterConfTypeDef CAN_FilterStruct;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -159,6 +166,27 @@ int main(void)
   //USART_START
   HAL_UART_Receive_IT(&huart2, usart2_rx, 100);
 
+  //canbus buffer setting
+  hcan2.pTxMsg = &CanTx_msg;
+  hcan2.pRxMsg = &CanRx_msg;
+
+  CAN_FilterStruct.FilterIdHigh = 0x0000; //Upper 16bit filter ID
+  CAN_FilterStruct.FilterIdLow = 0x0000; //Filter lower 16bit ID
+  CAN_FilterStruct.FilterMaskIdHigh = 0x0000; //Upper 16bit filter mask
+  CAN_FilterStruct.FilterMaskIdLow = 0x0000; //Lower 16bit filter mask
+  CAN_FilterStruct.FilterFIFOAssignment = CAN_FILTER_FIFO0; // Which FIFO will be assigned to filter
+  CAN_FilterStruct.FilterNumber = 14;  // 0..27 for CAN2
+  CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDMASK; //Identifier mask mode
+  CAN_FilterStruct.FilterScale = CAN_FILTERSCALE_32BIT; //32bit ID filter
+  CAN_FilterStruct.FilterActivation = ENABLE; //Enable this filter
+  CAN_FilterStruct.BankNumber = 14; //Start slave bank filter (?)
+
+  HAL_CAN_ConfigFilter(&hcan2, &CAN_FilterStruct); // Initialize filter
+
+  //CAN START
+  HAL_CAN_Receive_IT(&hcan2, CAN_FIFO0);
+
+  HAL_GPIO_WritePin(CAN_STANBY_GPIO_Port, CAN_STANBY_Pin, GPIO_PIN_RESET);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -188,16 +216,103 @@ int main(void)
 
 
         HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
+
+        val = Launch_MotorTest();
         //val = atoi(&USB_CDC_RX[4]);
 
         //itoa(115, USB_CDC_TX, 10);
 
-        strcpy(USB_CDC_TX,"Configuration mode\n");
+        if (val == 0)
+          strcpy(USB_CDC_TX,"Motor test launched\n\r");
+        else
+          strcpy(USB_CDC_TX,"Motor test canceled\n\r");
+
         CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
         USB_CDC_RX[0] = 0;
       }
-    }
+
+      /* Left motor Command */
+      if (USB_CDC_RX[0] == 'q') {
+
+
+        config_Motor_Command(100, 0);
+
+        strcpy(USB_CDC_TX,"LeftCMD: +100 rad\n\r");
+
+        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+        USB_CDC_RX[0] = 0;
+      }
+
+      if (USB_CDC_RX[0] == 'a') {
+
+
+          config_Motor_Command(-100, 0);
+
+          strcpy(USB_CDC_TX,"LeftCMD: -100 rad\n\r");
+
+          CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+          USB_CDC_RX[0] = 0;
+        }
+
+      /* Left motor Command */
+      if (USB_CDC_RX[0] == 'e') {
+
+
+        config_Motor_Command(0, 100);
+
+        strcpy(USB_CDC_TX,"RightCMD: +100 rad\n\r");
+
+        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+        USB_CDC_RX[0] = 0;
+      }
+
+      if (USB_CDC_RX[0] == 'd') {
+
+
+          config_Motor_Command(0, -100);
+
+          strcpy(USB_CDC_TX,"RightCMD: -100 rad\n\r");
+
+          CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+          USB_CDC_RX[0] = 0;
+        }
+
+      if (USB_CDC_RX[0] == 'r') {
+
+
+        MotorPos_Reset();
+
+        strcpy(USB_CDC_TX,"Motor position RESET\n\r");
+
+        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+        USB_CDC_RX[0] = 0;
+      }
+
+      if (USB_CDC_RX[0] == 'z') {
+
+        int motorleft = 0, motorright = 0;
+        float motorleft_pos = 0.0, motorright_pos = 0.0;
+
+        motorleft = Get_LeftMotor_command();
+        motorright = Get_RightMotor_command();
+
+        motorleft_pos = Get_LeftMotor_position();
+        motorright_pos = Get_RightMotor_position();
+
+        sprintf(USB_CDC_TX, "\n\rMotorLeft CMD:%i\n\rMotorRight CMD:%i\n\rMotorLeft Position:%f\n\rMotorRight Position:%f\n\r",motorleft, motorright, motorleft_pos, motorright_pos);
+
+        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+        USB_CDC_RX[0] = 0;
+      }
+
+}
   }
   /* USER CODE END 3 */
 
@@ -295,6 +410,9 @@ static void MX_NVIC_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/* All peripheral callback are here */
+//TIMER
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
   if (htim->Instance == TIM3)
@@ -314,6 +432,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 }
 
+//UsART
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
   uint8_t Save_String[512];
@@ -338,6 +457,24 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
   }
 
 }
+
+//CAN
+HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
+
+  if (hcan->Instance == CAN2)
+  {
+
+    strcpy(USB_CDC_TX, hcan->pRxMsg->Data);
+
+    CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+    __HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
+  }
+
+}
+
+/* peripheral callback END */
+
 /* USER CODE END 4 */
 
 /**
