@@ -133,10 +133,10 @@
 #define LED4_GPIO_Port GPIOD
 #define LEFT_CHB_Pin GPIO_PIN_15
 #define LEFT_CHB_GPIO_Port GPIOA
-#define NOT_USED_PD0_Pin GPIO_PIN_0
-#define NOT_USED_PD0_GPIO_Port GPIOD
-#define NOT_USED_PD1_Pin GPIO_PIN_1
-#define NOT_USED_PD1_GPIO_Port GPIOD
+#define GPS_ANT_ON_Pin GPIO_PIN_0
+#define GPS_ANT_ON_GPIO_Port GPIOD
+#define GPS_D_SEL_Pin GPIO_PIN_1
+#define GPS_D_SEL_GPIO_Port GPIOD
 #define SD_DETECT_Pin GPIO_PIN_3
 #define SD_DETECT_GPIO_Port GPIOD
 #define GPS_INT_Pin GPIO_PIN_4
@@ -167,6 +167,8 @@
 #define TRANS_OE_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
+
+#define GPS_FRAME_LENGTH 100
 
 /* USER CODE END Private defines */
 

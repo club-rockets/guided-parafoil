@@ -33,8 +33,10 @@ void GPS_Init() {
 
   //release GPS reset
   HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPS_D_SEL_GPIO_Port, GPS_D_SEL_Pin, GPIO_PIN_SET);
 
   UBX_StatusTypeDef response = UBX_CFG_ERROR_BAUD;
+
 
   while (response != UBX_OK) {
     HAL_GPIO_WritePin(GPIOD, LED4_Pin, GPIO_PIN_SET);
@@ -46,17 +48,27 @@ void GPS_Init() {
 void GPS_Read_Data(uint8_t * GPS_Read_Data) {
 
   int i = 0;
+  uint8_t ack[1];
 
   /* SD card  */
   uint8_t Save_String[512];                  //SD card write buffer
 
+  for (i = 0; i < 100; i++)
+    {
+      if(parse_char(GPS_Read_Data[i]) == 1)
+      {
 
-  for (i = 0; i < BUFFER_SIZE; i++)
-    parse_char(GPS_Read_Data[i]);
+        HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
+
+      }
+    }
+
+  GNSS_log(&hgps);
 
   PolarGPS_Coordinate.altitude = hgps.gps_position->alt / 1000.0;
   PolarGPS_Coordinate.latitude = hgps.gps_position->lat / 10000000.0;
   PolarGPS_Coordinate.longitude = hgps.gps_position->lon / 10000000.0;
+  PolarGPS_Coordinate.fix_type = hgps.gps_position->fix_type;
 
   CoordinateUpdated = 1;
 
@@ -100,6 +112,7 @@ PolarGPS_Coordinate_t GPS_GetCoordinate()
   CoordinateUpdated = 0;
   return PolarGPS_Coordinate;
 }
+
 
 CartesianGPS_Coordinate_t GPS_GetCartesianCoordinate(PolarGPS_Coordinate_t _PolarDest_Coordinate)
 {

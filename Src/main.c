@@ -41,7 +41,6 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
-#include <SGP_Control.h>
 #include "main.h"
 #include "stm32f4xx_hal.h"
 #include "can.h"
@@ -63,9 +62,11 @@
 #include "usbd_cdc.h"
 #include "usbd_cdc_if.h"
 
+#include "SGP_Control.h"
 #include "motorcmd.h"
 #include "SD_save.h"
 #include "GPS.h"
+#include "serial_com.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -73,16 +74,12 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-//Buffer for virtual com port USB
-uint8_t USB_CDC_RX[64] = { 0 };
-uint8_t USB_CDC_TX[64] = { 0 };
-
 //Buffer for GPS Ublox data frame
 uint8_t usart2_rx[256] = {0};
 uint8_t usart6_rx[256] = {0};
 
-uint8_t GPS1_frame[256] = {0};//USART2 Buffer
-uint8_t GPS2_frame[256] = {0};//USART6 Buffer
+uint8_t GPS1_frame[100] = {0};//USART2 Buffer
+uint8_t GPS2_frame[100] = {0};//USART6 Buffer
 
 //Data frame parse flag
 uint8_t GPS1_FrameRdy, GPS2_FrameRdy = 0;
@@ -104,6 +101,7 @@ static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
+
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -115,7 +113,10 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
-  int val = 0;
+  int i = 0;
+  uint8_t Save_String[512];
+  uint8_t buffer[64];
+  uint8_t data[100] = { 0 };
 
   /* USER CODE END 1 */
 
@@ -150,12 +151,27 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
 
-  HAL_Delay(1000);
+  hcan2.pTxMsg = &CanTx_msg;
+  hcan2.pRxMsg = &CanRx_msg;
 
-  SD_Save_Init();
-  GPS_Init();
-  Motor_Init();
-  SGP_Control_Init();
+  CAN_FilterStruct.FilterNumber = 0;                    //Specifies the filter which will be initialized.
+  CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDLIST;  //Specifies the filter mode to be initialized.
+                                                        //CAN_FILTERMODE_IDLIST : Identifier list mode
+  CAN_FilterStruct.FilterScale = CAN_FILTERSCALE_32BIT;
+  CAN_FilterStruct.FilterIdHigh = 0x245<<5;//Specifies the filter identification number (MSBs for a 32-bit configuration, first one for a 16-bit configuration).
+  CAN_FilterStruct.FilterIdLow = 0;
+  CAN_FilterStruct.FilterMaskIdHigh = 0;
+  CAN_FilterStruct.FilterMaskIdLow = 0;
+  CAN_FilterStruct.FilterFIFOAssignment = 0;
+  CAN_FilterStruct.BankNumber = 14;
+  HAL_CAN_ConfigFilter(&hcan2, &CAN_FilterStruct);
+
+  hcan2.pTxMsg->StdId = 0x244;
+  hcan2.pTxMsg->RTR = CAN_RTR_DATA;
+  hcan2.pTxMsg->IDE = CAN_ID_STD;
+  hcan2.pTxMsg->DLC = 1;
+
+  HAL_Delay(1000);
 
   //TIMER START
   HAL_TIM_Base_Start(&htim2);
@@ -163,25 +179,16 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim6);
 
-  //USART_START
-  HAL_UART_Receive_IT(&huart2, usart2_rx, 100);
+
+  SD_Save_Init();
+  GPS_Init();
+  HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
+  Motor_Init();
+  SGP_Control_Init();
+
+
 
   //canbus buffer setting
-  hcan2.pTxMsg = &CanTx_msg;
-  hcan2.pRxMsg = &CanRx_msg;
-
-  CAN_FilterStruct.FilterIdHigh = 0x0000; //Upper 16bit filter ID
-  CAN_FilterStruct.FilterIdLow = 0x0000; //Filter lower 16bit ID
-  CAN_FilterStruct.FilterMaskIdHigh = 0x0000; //Upper 16bit filter mask
-  CAN_FilterStruct.FilterMaskIdLow = 0x0000; //Lower 16bit filter mask
-  CAN_FilterStruct.FilterFIFOAssignment = CAN_FILTER_FIFO0; // Which FIFO will be assigned to filter
-  CAN_FilterStruct.FilterNumber = 14;  // 0..27 for CAN2
-  CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDMASK; //Identifier mask mode
-  CAN_FilterStruct.FilterScale = CAN_FILTERSCALE_32BIT; //32bit ID filter
-  CAN_FilterStruct.FilterActivation = ENABLE; //Enable this filter
-  CAN_FilterStruct.BankNumber = 14; //Start slave bank filter (?)
-
-  HAL_CAN_ConfigFilter(&hcan2, &CAN_FilterStruct); // Initialize filter
 
   //CAN START
   HAL_CAN_Receive_IT(&hcan2, CAN_FIFO0);
@@ -192,127 +199,45 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
+
+    serial_menu();
+
+
+
   /* USER CODE END WHILE */
+//    if (HAL_UART_Receive(&huart2, data, 100, 250) == HAL_OK)
+//    {
+//      for (i = 0; i < 100; i++)
+//      {
+//        if(parse_char(data[i]) == 1)
+//        {
+//
+//          HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
+//
+//        }
+//      }
+//    }
 
   /* USER CODE BEGIN 3 */
 
+    //HAL_CAN_Transmit(hcan2, 100);
     //GPS1 Frame parse launcher
     if (GPS1_FrameRdy != 0)
     {
       GPS_Read_Data(GPS1_frame);
       GPS1_FrameRdy = 0;
+      /*
+      hcan2.pTxMsg->Data[0] = 'a';
+      HAL_CAN_Transmit(&hcan2, 1);
+      */
+    }
+    else
+    {
+      HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
     }
 
-    /***************************************************
-     * USB SERIAL COM PORT
-     ***************************************************/
-
-    //code test pour programmer l'horloge
-    //est presentement utilisé avec des script sur teraterm
-    //rx is done elsewhere in usb_cdc_if.c
-    if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
-
-      if (USB_CDC_RX[0] == 's') {
 
 
-        HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
-
-        val = Launch_MotorTest();
-        //val = atoi(&USB_CDC_RX[4]);
-
-        //itoa(115, USB_CDC_TX, 10);
-
-        if (val == 0)
-          strcpy(USB_CDC_TX,"Motor test launched\n\r");
-        else
-          strcpy(USB_CDC_TX,"Motor test canceled\n\r");
-
-        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
-
-        USB_CDC_RX[0] = 0;
-      }
-
-      /* Left motor Command */
-      if (USB_CDC_RX[0] == 'q') {
-
-
-        config_Motor_Command(100, 0);
-
-        strcpy(USB_CDC_TX,"LeftCMD: +100 rad\n\r");
-
-        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
-
-        USB_CDC_RX[0] = 0;
-      }
-
-      if (USB_CDC_RX[0] == 'a') {
-
-
-          config_Motor_Command(-100, 0);
-
-          strcpy(USB_CDC_TX,"LeftCMD: -100 rad\n\r");
-
-          CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
-
-          USB_CDC_RX[0] = 0;
-        }
-
-      /* Left motor Command */
-      if (USB_CDC_RX[0] == 'e') {
-
-
-        config_Motor_Command(0, 100);
-
-        strcpy(USB_CDC_TX,"RightCMD: +100 rad\n\r");
-
-        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
-
-        USB_CDC_RX[0] = 0;
-      }
-
-      if (USB_CDC_RX[0] == 'd') {
-
-
-          config_Motor_Command(0, -100);
-
-          strcpy(USB_CDC_TX,"RightCMD: -100 rad\n\r");
-
-          CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
-
-          USB_CDC_RX[0] = 0;
-        }
-
-      if (USB_CDC_RX[0] == 'r') {
-
-
-        MotorPos_Reset();
-
-        strcpy(USB_CDC_TX,"Motor position RESET\n\r");
-
-        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
-
-        USB_CDC_RX[0] = 0;
-      }
-
-      if (USB_CDC_RX[0] == 'z') {
-
-        int motorleft = 0, motorright = 0;
-        float motorleft_pos = 0.0, motorright_pos = 0.0;
-
-        motorleft = Get_LeftMotor_command();
-        motorright = Get_RightMotor_command();
-
-        motorleft_pos = Get_LeftMotor_position();
-        motorright_pos = Get_RightMotor_position();
-
-        sprintf(USB_CDC_TX, "\n\rMotorLeft CMD:%i\n\rMotorRight CMD:%i\n\rMotorLeft Position:%f\n\rMotorRight Position:%f\n\r",motorleft, motorright, motorleft_pos, motorright_pos);
-
-        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
-
-        USB_CDC_RX[0] = 0;
-      }
-
-}
   }
   /* USER CODE END 3 */
 
@@ -335,7 +260,7 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -443,7 +368,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if (GPS1_FrameRdy != 0)
     {
 
-      sprintf((char*) (Save_String), "%s,%s", "GPS_Error", "GPS frame skipped");
+      sprintf((char*) (Save_String), "GPS_Error,%s", "GPS frame skipped");
       SD_Save_Data(Save_String);
 
     } else {
@@ -453,7 +378,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
     }
 
-    HAL_UART_Receive_IT(&huart2, usart2_rx, 100);
+
+
+    HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
   }
 
 }
@@ -464,9 +391,10 @@ HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
   if (hcan->Instance == CAN2)
   {
 
-    strcpy(USB_CDC_TX, hcan->pRxMsg->Data);
+    char message[64];
+    strcpy(message, hcan->pRxMsg->Data);
 
-    CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+    Send_serial_message(message);
 
     __HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
   }

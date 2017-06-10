@@ -44,6 +44,7 @@
 
 static UBX_ParserHandler Parser;
 uint8_t semGpsGate =0;
+uint8_t message[64];
 //extern DMA_HandleTypeDef hdma_usart1_rx;
 //extern UART_HandleTypeDef huart1;
 /** @addtogroup GNSS_Private_Functions   GNSS Private Functions
@@ -406,28 +407,28 @@ void GNSS_log(GNSS_HandleTypeDef *hgps)
 {
 	if(hgps->gps_position->fix_type > 0)
 	{
-		log_message("has FIX!");
+	  SD_Save_Data("has FIX!");
 	}
 
-//	log_nav("test ","test");
 	if(hgps->got_posllh)
 	{
 		char bufPOS[50];
-		sprintf(bufPOS, "%d, %d, %d", hgps->gps_position->lat,
+		sprintf(bufPOS, "NAV-POSLLH,%d,%d,%d", hgps->gps_position->lat,
 				hgps->gps_position->lon, hgps->gps_position->alt);
-		log_nav(bufPOS, "NAV-POSLLH:");
+		SD_Save_Data(bufPOS);
 		hgps->got_posllh = false;
-		//Turn_LED_On(3);
+		//HAL_GPIO_WritePin(GPIOD, LED4_Pin, GPIO_PIN_SET);
 	}
 	if(hgps->got_sol)
 	{
 		char bufSOL[50];
-		sprintf(bufSOL, "%d, %d", hgps->gps_position->fix_type,
+		sprintf(bufSOL, "NAV-SOL,%d,%d", hgps->gps_position->fix_type,
 				 hgps->gps_position->satellites_used);
-		log_nav(bufSOL, "NAV-SOL:");
+		SD_Save_Data(bufSOL);
 		hgps->got_sol = false;
-		//Turn_LED_On(3);
+		//HAL_GPIO_WritePin(GPIOD, LED4_Pin, GPIO_PIN_SET);
 	}
+
 
 //	if(hgps->got_velned)
 //	{
@@ -496,6 +497,8 @@ int  parse_char(const uint8_t b)
 	case UBX_DECODE_SYNC1:
 		if (b == UBX_SYNC1) {	// Sync1 found --> expecting Sync2
 			//printf("A\r\n");
+//		  Send_serial_message("a");
+		  HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
 			Parser.decode_state = UBX_DECODE_SYNC2;
 		}
 		break;
@@ -503,7 +506,7 @@ int  parse_char(const uint8_t b)
 		/* Expecting Sync2 */
 	case UBX_DECODE_SYNC2:
 		if (b == UBX_SYNC2) {	// Sync2 found --> expecting Class
-			//printf("B\r\n");
+//		  Send_serial_message("b");
 			Parser.decode_state = UBX_DECODE_CLASS;
 
 		} else {		// Sync1 not followed by Sync2: reset parser
@@ -513,7 +516,7 @@ int  parse_char(const uint8_t b)
 
 		/* Expecting Class */
 	case UBX_DECODE_CLASS:
-		//printf("C: %d\r\n", b);
+//	  Send_serial_message("c");
 		add_byte_to_checksum(b);   // checksum is calculated for everything except Sync and Checksum bytes
 		Parser.rx_msg = b;
 		Parser.decode_state = UBX_DECODE_ID;
@@ -521,7 +524,7 @@ int  parse_char(const uint8_t b)
 
 		/* Expecting ID */
 	case UBX_DECODE_ID:
-		//printf("ID: %d\r\n ", b);
+//	  Send_serial_message("d");
 		add_byte_to_checksum(b); 
 		Parser.rx_msg |= b << 8;
 		Parser.decode_state = UBX_DECODE_LENGTH1;
@@ -529,7 +532,7 @@ int  parse_char(const uint8_t b)
 
 		/* Expecting first length byte */
 	case UBX_DECODE_LENGTH1:
-		//printf("L:");
+//	  Send_serial_message("e");
 		add_byte_to_checksum(b); 
 		Parser.rx_payload_length = b;
 		Parser.decode_state = UBX_DECODE_LENGTH2;
@@ -538,7 +541,7 @@ int  parse_char(const uint8_t b)
 		/* Expecting second length byte */
 	case UBX_DECODE_LENGTH2:
 
-		add_byte_to_checksum(b); 
+//		add_byte_to_checksum("e1");
 		Parser.rx_payload_length |= b << 8;	// calculate payload size
 		//printf("L:%d\r\n\n", hgps->_rx_payload_length);
 		if (payload_rx_init() != 0) {	// start payload reception change to GNSS_status eventually!!
@@ -551,7 +554,7 @@ int  parse_char(const uint8_t b)
 
 		/* Expecting payload */
 	case UBX_DECODE_PAYLOAD:
-		//printf("(%d, %#04x)", ++countG, b);
+//	  Send_serial_message("f");
 		add_byte_to_checksum(b); 
 		//printf("D:%d, cs:%d ", b, hgps->_rx_ck_a);
 		switch (Parser.rx_msg) {
@@ -586,8 +589,10 @@ int  parse_char(const uint8_t b)
 
 		/* Expecting first checksum byte */
 		case UBX_DECODE_CHKSUM1:
-			//		countG =0;
+
+
 			if (Parser.rx_ck_a != b) {
+
 				//HAL_GPIO_TogglePin(GPIOI, GPIO_PIN_9);
 				//log_message("ubx checksum1 err ");
 				UBX_resetParser();
@@ -598,10 +603,18 @@ int  parse_char(const uint8_t b)
 
 			/* Expecting second checksum byte */
 		case UBX_DECODE_CHKSUM2:
-			if (Parser.rx_ck_b != b) {
-				//HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+
+
+      ret = payload_rx_done();  // finish payload processing
+
+
+
+		  if (Parser.rx_ck_b != b) {
+
 			} else {
 				ret = payload_rx_done();	// finish payload processing
+
+				Send_serial_message("GPS SUUSSS\r\n");
 			}
 			//printf("got 1 frame\r\n");
 			UBX_resetParser();
@@ -610,7 +623,7 @@ int  parse_char(const uint8_t b)
 		default:
 			break;
 	}
-	//printf("parse_ret: %d\r\n", ret);
+
 	return ret;
 
 }
@@ -965,6 +978,7 @@ static int payload_rx_done(void)
 
 	case UBX_MSG_NAV_PVT:
 		//printf("Rx NAV-PVT\n");
+	  HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
 
 		hgps->gps_position->fix_type		= Parser.buf_packet.payload_rx_nav_pvt.fixType;
 		hgps->gps_position->satellites_used	= Parser.buf_packet.payload_rx_nav_pvt.numSV;
