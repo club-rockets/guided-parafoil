@@ -89,9 +89,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, NOT_USED_PA2_Pin|NOT_USED_PA3_Pin|MTi_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, NOT_USED_PB2_Pin|NOT_USED_PB10_Pin|NOT_USED_PB14_Pin|NOT_USED_PB15_Pin 
-                          |NOT_USED_PB4_Pin|NOT_USED_PB5_Pin|NOT_USED_PB6_Pin|NOT_USED_PB7_Pin 
-                          |NOT_USED_PB8_Pin|GPS_RESET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, NOT_USED_PB2_Pin|NOT_USED_PB10_Pin|CAN_STANDBY_Pin|NOT_USED_PB14_Pin 
+                          |NOT_USED_PB15_Pin|NOT_USED_PB4_Pin|NOT_USED_PB5_Pin|NOT_USED_PB6_Pin 
+                          |NOT_USED_PB7_Pin|NOT_USED_PB8_Pin|GPS_RESET_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11 
@@ -163,11 +163,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = CAN_STANBY_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pins : PBPin PBPin */
+  GPIO_InitStruct.Pin = CAN_STANDBY_Pin|GPS_RESET_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(CAN_STANBY_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD8 PD9 PD10 PD11 
                            PDPin PDPin PDPin PDPin 
@@ -191,13 +192,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(SD_DETECT_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = GPS_RESET_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPS_RESET_GPIO_Port, &GPIO_InitStruct);
 
 }
 

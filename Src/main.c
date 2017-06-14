@@ -75,11 +75,11 @@
 /* Private variables ---------------------------------------------------------*/
 
 //Buffer for GPS Ublox data frame
-uint8_t usart2_rx[256] = {0};
-uint8_t usart6_rx[256] = {0};
+uint8_t usart2_rx[512] = {0};
+uint8_t usart6_rx[512] = {0};
 
-uint8_t GPS1_frame[100] = {0};//USART2 Buffer
-uint8_t GPS2_frame[100] = {0};//USART6 Buffer
+uint8_t GPS1_frame[512] = {0};//USART2 Buffer
+uint8_t GPS2_frame[512] = {0};//USART6 Buffer
 
 //Data frame parse flag
 uint8_t GPS1_FrameRdy, GPS2_FrameRdy = 0;
@@ -155,10 +155,10 @@ int main(void)
   hcan2.pRxMsg = &CanRx_msg;
 
   CAN_FilterStruct.FilterNumber = 0;                    //Specifies the filter which will be initialized.
-  CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDLIST;  //Specifies the filter mode to be initialized.
+  CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDMASK;  //Specifies the filter mode to be initialized.
                                                         //CAN_FILTERMODE_IDLIST : Identifier list mode
   CAN_FilterStruct.FilterScale = CAN_FILTERSCALE_32BIT;
-  CAN_FilterStruct.FilterIdHigh = 0x245<<5;//Specifies the filter identification number (MSBs for a 32-bit configuration, first one for a 16-bit configuration).
+  CAN_FilterStruct.FilterIdHigh = 0;//Specifies the filter identification number (MSBs for a 32-bit configuration, first one for a 16-bit configuration).
   CAN_FilterStruct.FilterIdLow = 0;
   CAN_FilterStruct.FilterMaskIdHigh = 0;
   CAN_FilterStruct.FilterMaskIdLow = 0;
@@ -173,12 +173,6 @@ int main(void)
 
   HAL_Delay(1000);
 
-  //TIMER START
-  HAL_TIM_Base_Start(&htim2);
-  HAL_TIM_Base_Start_IT(&htim3);
-  HAL_TIM_Base_Start_IT(&htim4);
-  HAL_TIM_Base_Start_IT(&htim6);
-
 
   SD_Save_Init();
   GPS_Init();
@@ -187,13 +181,18 @@ int main(void)
   SGP_Control_Init();
 
 
+  //TIMER START
+  HAL_TIM_Base_Start(&htim2);
+  HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Base_Start_IT(&htim4);
+  HAL_TIM_Base_Start_IT(&htim6);
+
 
   //canbus buffer setting
 
   //CAN START
   HAL_CAN_Receive_IT(&hcan2, CAN_FIFO0);
-
-  HAL_GPIO_WritePin(CAN_STANBY_GPIO_Port, CAN_STANBY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(CAN_STANDBY_GPIO_Port, CAN_STANDBY_Pin, GPIO_PIN_RESET);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -205,18 +204,6 @@ int main(void)
 
 
   /* USER CODE END WHILE */
-//    if (HAL_UART_Receive(&huart2, data, 100, 250) == HAL_OK)
-//    {
-//      for (i = 0; i < 100; i++)
-//      {
-//        if(parse_char(data[i]) == 1)
-//        {
-//
-//          HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
-//
-//        }
-//      }
-//    }
 
   /* USER CODE BEGIN 3 */
 
@@ -226,14 +213,11 @@ int main(void)
     {
       GPS_Read_Data(GPS1_frame);
       GPS1_FrameRdy = 0;
-      /*
-      hcan2.pTxMsg->Data[0] = 'a';
-      HAL_CAN_Transmit(&hcan2, 1);
-      */
+
     }
     else
     {
-      HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+      HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
     }
 
 
@@ -368,17 +352,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if (GPS1_FrameRdy != 0)
     {
 
-      sprintf((char*) (Save_String), "GPS_Error,%s", "GPS frame skipped");
-      SD_Save_Data(Save_String);
+      SD_Save_Data("GPS_Error,GPS frame skipped");
 
     } else {
 
-      memcpy(GPS1_frame,usart2_rx, 100);
+      HAL_GPIO_TogglePin(GPIOD, LED1_Pin);
+      memcpy(GPS1_frame,usart2_rx, GPS_FRAME_LENGTH);
       GPS1_FrameRdy = 1;
 
     }
-
-
 
     HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
   }

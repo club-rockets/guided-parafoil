@@ -30,11 +30,11 @@ void SD_Save_Loop()
   static uint32_t save_counter;
   //turn on led if the data as been saved
   if (f_close(&data_file) == FR_OK) {
-    //HAL_GPIO_WritePin(GPIOD, LED3_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOD, LED3_Pin, GPIO_PIN_SET);
   }
   //if error while writing, reset led
   else {
-    //HAL_GPIO_WritePin(GPIOD, LED3_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOD, LED3_Pin, GPIO_PIN_RESET);
   }
 
   f_open(&data_file, FILENAME, FA_OPEN_EXISTING | FA_WRITE);

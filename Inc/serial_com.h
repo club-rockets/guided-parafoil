@@ -20,6 +20,7 @@
 #include "motorcmd.h"
 #include "SD_save.h"
 #include "GPS.h"
+#include "can.h"
 
 void serial_menu();
 void Send_serial_message(char* _message);

@@ -135,6 +135,25 @@ void serial_menu()
 
       USB_CDC_RX[0] = 0;
     }
+
+    if (USB_CDC_RX[0] == 'c') {
+
+      uint8_t res = 0;
+      hcan2.pTxMsg->Data[0] = 'a';
+      hcan2.pTxMsg->Data[1] = 'b';
+      hcan2.pTxMsg->Data[2] = 'c';
+      hcan2.pTxMsg->Data[3] = 'd';
+      hcan2.pTxMsg->Data[4] = 'e';
+      hcan2.pTxMsg->StdId = 0x001;
+      hcan2.pTxMsg->DLC = 2;
+
+      res = HAL_CAN_Transmit(&hcan2, 5);
+
+      sprintf(USB_CDC_TX, "CAN TEST: %i\n\r", res);
+      CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+      USB_CDC_RX[0] = 0;
+    }
   }
 }
 

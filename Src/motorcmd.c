@@ -179,12 +179,12 @@ void MotorCMD_Loop() {
 
   SD_Save_Data(Save_String);
 
-  if (led_counter < 19) {
-    led_counter++;
-  } else {
-    led_counter = 0;
-    HAL_GPIO_TogglePin(GPIOD, LED1_Pin);
-  }
+//  if (led_counter < 19) {
+//    led_counter++;
+//  } else {
+//    led_counter = 0;
+//    HAL_GPIO_TogglePin(GPIOD, LED1_Pin);
+//  }
 
 
 }

@@ -53,12 +53,10 @@ void GPS_Read_Data(uint8_t * GPS_Read_Data) {
   /* SD card  */
   uint8_t Save_String[512];                  //SD card write buffer
 
-  for (i = 0; i < 100; i++)
+  for (i = 0; i < GPS_FRAME_LENGTH; i++)
     {
       if(parse_char(GPS_Read_Data[i]) == 1)
       {
-
-        HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
 
       }
     }
