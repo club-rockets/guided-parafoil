@@ -75,11 +75,11 @@
 /* Private variables ---------------------------------------------------------*/
 
 //Buffer for GPS Ublox data frame
-uint8_t usart2_rx[512] = {0};
-uint8_t usart6_rx[512] = {0};
+uint8_t usart2_rx[GPS_FRAME_LENGTH] = {0};
+uint8_t usart6_rx[GPS_FRAME_LENGTH] = {0};
 
-uint8_t GPS1_frame[512] = {0};//USART2 Buffer
-uint8_t GPS2_frame[512] = {0};//USART6 Buffer
+uint8_t GPS1_frame[GPS_FRAME_LENGTH] = {0};//USART2 Buffer
+uint8_t GPS2_frame[GPS_FRAME_LENGTH] = {0};//USART6 Buffer
 
 //Data frame parse flag
 uint8_t GPS1_FrameRdy, GPS2_FrameRdy = 0;
@@ -173,13 +173,14 @@ int main(void)
 
   HAL_Delay(1000);
 
-
+  //init main handlers and stuff
   SD_Save_Init();
-  GPS_Init();
-  HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
   Motor_Init();
+  GPS_Init();
   SGP_Control_Init();
 
+  //start uart interrupt for GPS, cte lenght rx
+  HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
 
   //TIMER START
   HAL_TIM_Base_Start(&htim2);
@@ -187,20 +188,20 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim6);
 
-
-  //canbus buffer setting
-
   //CAN START
-  HAL_CAN_Receive_IT(&hcan2, CAN_FIFO0);
   HAL_GPIO_WritePin(CAN_STANDBY_GPIO_Port, CAN_STANDBY_Pin, GPIO_PIN_RESET);
+//  HAL_CAN_Receive_IT(&hcan2, CAN_FIFO0);
+//  __HAL_CAN_ENABLE_IT(&hcan2, CAN_IT_FMP0);
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
 
-    serial_menu();
 
+    serial_menu();
 
 
   /* USER CODE END WHILE */
@@ -220,7 +221,8 @@ int main(void)
       HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
     }
 
-
+    HAL_CAN_Receive_IT(&hcan2, CAN_FIFO0);
+    __HAL_CAN_ENABLE_IT(&hcan2, CAN_IT_FMP0);
 
   }
   /* USER CODE END 3 */
@@ -244,7 +246,8 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE
+                              |RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -314,8 +317,14 @@ static void MX_NVIC_Init(void)
   HAL_NVIC_SetPriority(CAN2_RX1_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(CAN2_RX1_IRQn);
   /* OTG_FS_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(OTG_FS_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(OTG_FS_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
+  /* USART2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART2_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(USART2_IRQn);
+  /* USART6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART6_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(USART6_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -344,38 +353,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 //UsART
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
-  uint8_t Save_String[512];
-
   //GPS1 UBX frame caption
   if(huart->Instance == USART2){
-
-    if (GPS1_FrameRdy != 0)
-    {
-
-      SD_Save_Data("GPS_Error,GPS frame skipped");
-
-    } else {
-
-      HAL_GPIO_TogglePin(GPIOD, LED1_Pin);
-      memcpy(GPS1_frame,usart2_rx, GPS_FRAME_LENGTH);
-      GPS1_FrameRdy = 1;
-
-    }
-
-    HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
+    HAL_GPIO_TogglePin(GPIOD, LED1_Pin);
+    memcpy(GPS1_frame, usart2_rx, sizeof(usart2_rx));
   }
-
 }
 
 //CAN
-HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
+void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan){
 
   if (hcan->Instance == CAN2)
   {
 
-    char message[64];
-    strcpy(message, hcan->pRxMsg->Data);
-
+    char message[8] = {0};
+    memcpy(message, hcan->pRxMsg->Data, 8);
     Send_serial_message(message);
 
     __HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);

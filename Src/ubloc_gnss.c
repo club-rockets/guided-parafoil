@@ -413,7 +413,7 @@ void GNSS_log(GNSS_HandleTypeDef *hgps)
 	if(hgps->got_posllh)
 	{
 		char bufPOS[50];
-		sprintf(bufPOS, "NAV-POSLLH,%d,%d,%d", hgps->gps_position->lat,
+		sprintf(bufPOS, "NAV-POSLLH,%l,%l,%l", hgps->gps_position->lat,
 				hgps->gps_position->lon, hgps->gps_position->alt);
 		SD_Save_Data(bufPOS);
 		hgps->got_posllh = false;

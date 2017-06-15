@@ -79,13 +79,16 @@ typedef struct PolarGPS_Coordinate_s {
   float latitude;
   float longitude;
   float altitude;
-  uint8_t fix_type;
+  uint32_t fix_type;
+  uint32_t N_satellites;
 } PolarGPS_Coordinate_t;
 
 typedef struct CartesianGPS_Coordinate_s {
   float x;
   float y;
   float altitude;
+  uint32_t fix_type;
+  uint32_t N_satellites;
 } CartesianGPS_Coordinate_t;
 
 /******************************************************************************/

@@ -94,97 +94,65 @@ void MX_GPIO_Init(void)
                           |NOT_USED_PB7_Pin|NOT_USED_PB8_Pin|GPS_RESET_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11 
+  HAL_GPIO_WritePin(GPIOD, GPIO_ext1_Pin|GPIO_ext2_Pin|GPIO_ext3_Pin|GPIO_ext4_Pin 
                           |LED1_Pin|LED2_Pin|LED3_Pin|LED4_Pin 
-                          |GPS_D_SEL_Pin|GPS_INT_Pin, GPIO_PIN_RESET);
+                          |NOT_USED_PD0_Pin|GPS_D_SEL_Pin|GPS_INT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PEPin PEPin PEPin PEPin 
                            PEPin PEPin PEPin PEPin 
-                           PEPin PEPin PEPin PEPin */
+                           PEPin PEPin PEPin PEPin 
+                           PEPin PEPin */
   GPIO_InitStruct.Pin = NOT_USED_PE2_Pin|NOT_USED_PE3_Pin|NOT_USED_PE4_Pin|NOT_USED_PE5_Pin 
-                          |NOT_USED_PE6_Pin|NOT_USED_PE7_Pin|NOT_USED_PE9_Pin|NOT_USED_PE10_Pin 
-                          |NOT_USED_PE12_Pin|NOT_USED_PE14_Pin|NOT_USED_PE15_Pin|NOT_USED_PE0_Pin;
+                          |NOT_USED_PE6_Pin|NOT_USED_PE7_Pin|MTi_RST_Pin|NOT_USED_PE9_Pin 
+                          |NOT_USED_PE10_Pin|NOT_USED_PE12_Pin|NOT_USED_PE14_Pin|NOT_USED_PE15_Pin 
+                          |NOT_USED_PE0_Pin|TRANS_OE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PCPin PCPin PCPin PCPin 
-                           PCPin */
+                           PCPin PCPin */
   GPIO_InitStruct.Pin = NOT_USED_PC13_Pin|NOT_USED_PC0_Pin|NOT_USED_PC1_Pin|NOT_USED_PC2_Pin 
-                          |NOT_USED_PC3_Pin;
+                          |NOT_USED_PC3_Pin|MTi_SYNC_IN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PAPin PAPin */
-  GPIO_InitStruct.Pin = NOT_USED_PA2_Pin|NOT_USED_PA3_Pin;
+  /*Configure GPIO pins : PAPin PAPin PAPin */
+  GPIO_InitStruct.Pin = NOT_USED_PA2_Pin|NOT_USED_PA3_Pin|MTi_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = MTi_CS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(MTi_CS_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = MTi_DATA_READY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(MTi_DATA_READY_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = MTi_SYNC_IN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(MTi_SYNC_IN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PBPin PBPin PBPin PBPin 
                            PBPin PBPin PBPin PBPin 
-                           PBPin */
-  GPIO_InitStruct.Pin = NOT_USED_PB2_Pin|NOT_USED_PB10_Pin|NOT_USED_PB14_Pin|NOT_USED_PB15_Pin 
-                          |NOT_USED_PB4_Pin|NOT_USED_PB5_Pin|NOT_USED_PB6_Pin|NOT_USED_PB7_Pin 
-                          |NOT_USED_PB8_Pin;
+                           PBPin PBPin PBPin */
+  GPIO_InitStruct.Pin = NOT_USED_PB2_Pin|NOT_USED_PB10_Pin|CAN_STANDBY_Pin|NOT_USED_PB14_Pin 
+                          |NOT_USED_PB15_Pin|NOT_USED_PB4_Pin|NOT_USED_PB5_Pin|NOT_USED_PB6_Pin 
+                          |NOT_USED_PB7_Pin|NOT_USED_PB8_Pin|GPS_RESET_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PEPin PEPin */
-  GPIO_InitStruct.Pin = MTi_RST_Pin|TRANS_OE_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PBPin PBPin */
-  GPIO_InitStruct.Pin = CAN_STANDBY_Pin|GPS_RESET_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PD8 PD9 PD10 PD11 
+  /*Configure GPIO pins : PDPin PDPin PDPin PDPin 
                            PDPin PDPin PDPin PDPin 
-                           PDPin PDPin */
-  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11 
+                           PDPin PDPin PDPin */
+  GPIO_InitStruct.Pin = GPIO_ext1_Pin|GPIO_ext2_Pin|GPIO_ext3_Pin|GPIO_ext4_Pin 
                           |LED1_Pin|LED2_Pin|LED3_Pin|LED4_Pin 
-                          |GPS_D_SEL_Pin|GPS_INT_Pin;
+                          |NOT_USED_PD0_Pin|GPS_D_SEL_Pin|GPS_INT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PDPin PDPin */
-  GPIO_InitStruct.Pin = GPS_ANT_ON_Pin|GPS_PULSE_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
@@ -192,6 +160,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(SD_DETECT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PtPin */
+  GPIO_InitStruct.Pin = GPS_PULSE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPS_PULSE_GPIO_Port, &GPIO_InitStruct);
 
 }
 

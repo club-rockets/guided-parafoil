@@ -123,6 +123,14 @@
 #define NOT_USED_PB14_GPIO_Port GPIOB
 #define NOT_USED_PB15_Pin GPIO_PIN_15
 #define NOT_USED_PB15_GPIO_Port GPIOB
+#define GPIO_ext1_Pin GPIO_PIN_8
+#define GPIO_ext1_GPIO_Port GPIOD
+#define GPIO_ext2_Pin GPIO_PIN_9
+#define GPIO_ext2_GPIO_Port GPIOD
+#define GPIO_ext3_Pin GPIO_PIN_10
+#define GPIO_ext3_GPIO_Port GPIOD
+#define GPIO_ext4_Pin GPIO_PIN_11
+#define GPIO_ext4_GPIO_Port GPIOD
 #define LED1_Pin GPIO_PIN_12
 #define LED1_GPIO_Port GPIOD
 #define LED2_Pin GPIO_PIN_13
@@ -133,8 +141,8 @@
 #define LED4_GPIO_Port GPIOD
 #define LEFT_CHB_Pin GPIO_PIN_15
 #define LEFT_CHB_GPIO_Port GPIOA
-#define GPS_ANT_ON_Pin GPIO_PIN_0
-#define GPS_ANT_ON_GPIO_Port GPIOD
+#define NOT_USED_PD0_Pin GPIO_PIN_0
+#define NOT_USED_PD0_GPIO_Port GPIOD
 #define GPS_D_SEL_Pin GPIO_PIN_1
 #define GPS_D_SEL_GPIO_Port GPIOD
 #define SD_DETECT_Pin GPIO_PIN_3

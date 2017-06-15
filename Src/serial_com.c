@@ -129,7 +129,7 @@ void serial_menu()
       polar_pos = GPS_GetCoordinate();
       cart_pos = GPS_GetCartesianCoordinate(polar_dest);
 
-      sprintf(USB_CDC_TX, "\n\rGPS DATA:\n\rFix type: %i\n\rLatitude: %f\n\rLongitude: %f\n\rX: %f\n\rY: %f\n\r", polar_pos.fix_type, polar_pos.latitude, polar_pos.longitude, cart_pos.x, cart_pos.y);
+      sprintf(USB_CDC_TX, "\n\rGPS DATA:\n\rFix type: %lu\n\rLatitude: %f\n\rLongitude: %f\n\rX: %f\n\rY: %f\n\rNb Satellites: %lu\n\r", polar_pos.fix_type, polar_pos.latitude, polar_pos.longitude, cart_pos.x, cart_pos.y, polar_pos.N_satellites);
 
       CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
@@ -160,5 +160,5 @@ void serial_menu()
 void Send_serial_message(char* _message)
 {
   //memcpy(USB_CDC_TX, _message, strlen(_message));
-  CDC_Transmit_FS(_message, strlen(_message));
+  CDC_Transmit_FS((uint8_t *)_message, strlen(_message));
 }

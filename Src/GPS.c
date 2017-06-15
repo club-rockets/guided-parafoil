@@ -2,7 +2,11 @@
 
 GNSS_HandleTypeDef hgps;
 
-PolarGPS_Coordinate_t PolarGPS_Coordinate = { .altitude = 0.0, .longitude = 0.0, .latitude = 0.0 };
+PolarGPS_Coordinate_t PolarGPS_Coordinate = { .altitude = 0.0,
+                                              .longitude = 0.0,
+                                              .latitude = 0.0,
+                                              .N_satellites = 0,
+                                              .fix_type = 0};
 uint8_t CoordinateUpdated = 0;
 
 void GPS_Init() {
@@ -67,6 +71,7 @@ void GPS_Read_Data(uint8_t * GPS_Read_Data) {
   PolarGPS_Coordinate.latitude = hgps.gps_position->lat / 10000000.0;
   PolarGPS_Coordinate.longitude = hgps.gps_position->lon / 10000000.0;
   PolarGPS_Coordinate.fix_type = hgps.gps_position->fix_type;
+  PolarGPS_Coordinate.N_satellites = hgps.satellite_info->count;
 
   CoordinateUpdated = 1;
 
