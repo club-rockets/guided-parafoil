@@ -42,33 +42,31 @@
 
 #include "ubloc_gnss.h"
 
-static UBX_ParserHandler Parser;
-uint8_t semGpsGate =0;
-uint8_t message[64];
+
 //extern DMA_HandleTypeDef hdma_usart1_rx;
 //extern UART_HandleTypeDef huart1;
 /** @addtogroup GNSS_Private_Functions   GNSS Private Functions
  * @{
  */
-static void UBX_resetParser(void);
-static void UBX_Parser_Init(void);
+void UBX_resetParser(UBX_ParserHandler *_Parser);
+void UBX_Parser_Init(UBX_ParserHandler *_Parser);
 //static int  parse_char(const uint8_t b);
-static void add_byte_to_checksum(const uint8_t b);
-static int  payload_rx_init(void);
-static int  payload_rx_add_nav_svinfo( const uint8_t b);
+void add_byte_to_checksum(UBX_ParserHandler *_Parser, const uint8_t b);
+int  payload_rx_init(UBX_ParserHandler *_Parser);
+int  payload_rx_add_nav_svinfo(UBX_ParserHandler *_Parser, const uint8_t b);
 
-static int  payload_rx_add_rxm_rawx (const uint8_t b);
-static int  payload_rx_add_rxm_sfrbx(const uint8_t b);
+int  payload_rx_add_rxm_rawx(UBX_ParserHandler *_Parser, const uint8_t b);
+int  payload_rx_add_rxm_sfrbx(UBX_ParserHandler *_Parser, const uint8_t b);
 
-static int  payload_rx_add(const uint8_t b);
-static int  payload_rx_add_mon_ver( const uint8_t b);
-static uint32_t fnv1_32_str(uint8_t *str, uint32_t hval);
-static int payload_rx_done(void);
-static void configure_message_rate(const uint16_t msg, const uint8_t rate);
-static void calc_checksum(const uint8_t *buffer, const uint16_t length, ubx_checksum_t *checksum);
-static void GNSS_send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length);
-static UBX_StatusTypeDef wait_for_ack(const uint16_t msg);
-static UBX_StatusTypeDef wait_for_ack2(const uint16_t msg);
+int  payload_rx_add(UBX_ParserHandler *_Parser, const uint8_t b);
+int payload_rx_add_mon_ver(UBX_ParserHandler *_Parser, const uint8_t b);
+uint32_t fnv1_32_str(uint8_t *str, uint32_t hval);
+int payload_rx_done(UBX_ParserHandler *_Parser);
+void configure_message_rate(UBX_ParserHandler *_Parser, const uint16_t msg, const uint8_t rate);
+void calc_checksum(const uint8_t *buffer, const uint16_t length, ubx_checksum_t *checksum);
+void GNSS_send_message(UBX_ParserHandler* _Parser, const uint16_t msg, const uint8_t *payload, const uint16_t length);
+UBX_StatusTypeDef wait_for_ack(UBX_ParserHandler *_Parser, const uint16_t msg);
+UBX_StatusTypeDef wait_for_ack2(UBX_ParserHandler *_Parser, const uint16_t msg);
 //UBX_StatusTypeDef GNSS_configure(void);//configure the GPS
 /**
  * @}
@@ -127,21 +125,43 @@ static UBX_StatusTypeDef wait_for_ack2(const uint16_t msg);
 //}
 
 
-void GNSS_Init(GNSS_HandleTypeDef *hgps)
+void GNSS_Init(UBX_ParserHandler *_Parser, UART_HandleTypeDef *_huart)
 {
-	hgps->got_posllh= false;
-	hgps->got_velned = false;
-	hgps->got_svinfo = false;
-	hgps->got_gnssMeas = false;
-	hgps->got_subFrame	= false;
-	hgps->ubx_version =0;
-	UBX_Parser_Init();
+
+  GNSS_HandleTypeDef hgps_temp;
+
+  hgps_temp.Init.baudrate = _huart->Init.BaudRate;
+  hgps_temp.Init.portID = UBLOC_UART1;
+  hgps_temp.Init.dynModel = DYNMODEL_AUTOMOTIVE;
+  hgps_temp.Init.fixMode = FIXMODE_3D;
+  hgps_temp.Init.MeasurementRate = UBX_TX_CFG_RATE_MEASINTERVAL;
+  hgps_temp.Init.navigationRate = UBX_TX_CFG_RATE_NAVRATE;
+  hgps_temp.Init.timeRef = UBX_REF_TIME_GPS;
+  hgps_temp.huart = _huart;
+  hgps_temp.use_sat_info = 0;
+  hgps_temp.use_gnss_meas = 0;
+  hgps_temp.use_subFrame = 0;
+
+  hgps_temp.got_posllh= false;
+  hgps_temp.got_velned = false;
+  hgps_temp.got_svinfo = false;
+  hgps_temp.got_gnssMeas = false;
+  hgps_temp.got_subFrame	= false;
+  hgps_temp.ubx_version =0;
+  UBX_Parser_Init(_Parser);
 	//	hgps->use_nav_pvt =false;
 	//	hgps->use_sat_info=false;
-	hgps->satellite_info = NULL;
-	hgps->gnss_meas			 = NULL;
-	hgps->subFrames			 = NULL;
-	Parser.hgps = hgps;
+  hgps_temp.satellite_info = NULL;
+  hgps_temp.gnss_meas			 = NULL;
+  hgps_temp.subFrames			 = NULL;
+
+  struct satellite_info_s satv;
+  hgps_temp.satellite_info = &satv;
+
+  struct vehicle_gps_position_s posGPS;
+  hgps_temp.gps_position = &posGPS;
+
+  _Parser->hgps = &hgps_temp;
 }
 
 
@@ -152,37 +172,37 @@ void GNSS_Init(GNSS_HandleTypeDef *hgps)
  *					callback function is call to parse the data.
  * @retval GNSS status
  */
-UBX_StatusTypeDef GNSS_Start(void)
-{
-	//start the DMA transmission ( continous reception with half and complete transmission callback)
-
-	//	HAL_Delay(200);
-	//	HAL_UART_DeInit(&huart1);
-	//	__DMA2_CLK_DISABLE();
-	//	HAL_NVIC_DisableIRQ(DMA2_Stream2_IRQn);
-	//
-	//
-	//  __DMA2_CLK_ENABLE();
-	//  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 2, 0);
-	//  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
-	//	HAL_UART_Init(&huart1);
-
-	if(HAL_UART_Receive_DMA(Parser.hgps->huart, Parser.buf_reception, RECEIVE_COUNT) != HAL_OK)
-	{
-		return UBX_UART_ERR;
-	}
-	// receive some junk
-	int tickstart =HAL_GetTick();
-	semGpsGate =0;
-	while((semGpsGate < 1) && ((HAL_GetTick() - tickstart) < 1000))
-	{
-	}
-	if(((HAL_GetTick() - tickstart) >= 1000) && (semGpsGate < 1))
-	{
-		return UBX_NO_RES;
-	}
-	return UBX_OK;
-}
+//UBX_StatusTypeDef GNSS_Start(void)
+//{
+//	//start the DMA transmission ( continous reception with half and complete transmission callback)
+//
+//	//	HAL_Delay(200);
+//	//	HAL_UART_DeInit(&huart1);
+//	//	__DMA2_CLK_DISABLE();
+//	//	HAL_NVIC_DisableIRQ(DMA2_Stream2_IRQn);
+//	//
+//	//
+//	//  __DMA2_CLK_ENABLE();
+//	//  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 2, 0);
+//	//  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+//	//	HAL_UART_Init(&huart1);
+//
+//	if(HAL_UART_Receive_DMA(_Parser->hgps->huart, _Parser->buf_reception, RECEIVE_COUNT) != HAL_OK)
+//	{
+//		return UBX_UART_ERR;
+//	}
+//	// receive some junk
+//	int tickstart =HAL_GetTick();
+//	semGpsGate =0;
+//	while((semGpsGate < 1) && ((HAL_GetTick() - tickstart) < 1000))
+//	{
+//	}
+//	if(((HAL_GetTick() - tickstart) >= 1000) && (semGpsGate < 1))
+//	{
+//		return UBX_NO_RES;
+//	}
+//	return UBX_OK;
+//}
 
 
 /**
@@ -192,24 +212,24 @@ UBX_StatusTypeDef GNSS_Start(void)
  *					The communication is with GPS satellites.
  * @retval GNSS status
  */
-UBX_StatusTypeDef GNSS_configure(void)
+UBX_StatusTypeDef GNSS_configure(UBX_ParserHandler* _Parser)
 {
 
-	UART_HandleTypeDef *huart = Parser.hgps->huart;
-	GNSS_HandleTypeDef *hgps  = Parser.hgps;
+	UART_HandleTypeDef *huart = _Parser->hgps->huart;
+	GNSS_HandleTypeDef *hgps  = _Parser->hgps;
 
 	//build the payload
-	ubx_payload_tx_cfg_prt_t *ptrPyld = &(Parser.buf_packet.payload_tx_cfg_prt);
+	ubx_payload_tx_cfg_prt_t *ptrPyld = &(_Parser->buf_packet.payload_tx_cfg_prt);
 
-	memset(ptrPyld, 0, sizeof(Parser.buf_packet.payload_tx_cfg_prt));
+	memset(ptrPyld, 0, sizeof(_Parser->buf_packet.payload_tx_cfg_prt));
 	ptrPyld->portID		    = hgps->Init.portID;
 	ptrPyld->mode		      = UBX_TX_CFG_PRT_MODE;
 	ptrPyld->baudRate	    = huart->Init.BaudRate;
 	ptrPyld->inProtoMask	= UBX_TX_CFG_PRT_INPROTOMASK;
 	ptrPyld->outProtoMask	= UBX_TX_CFG_PRT_OUTPROTOMASK;
 
-	GNSS_send_message(UBX_MSG_CFG_PRT, Parser.buf_packet.raw, sizeof(Parser.buf_packet.payload_tx_cfg_prt));
-	if (wait_for_ack(UBX_MSG_CFG_PRT) != UBX_ACK_OK)
+	GNSS_send_message(_Parser, UBX_MSG_CFG_PRT, _Parser->buf_packet.raw, sizeof(_Parser->buf_packet.payload_tx_cfg_prt));
+	if (wait_for_ack(_Parser, UBX_MSG_CFG_PRT) != UBX_ACK_OK)
 	{
 		/* try next baudrate */
 		log_message("not good baud try next\r\n");
@@ -218,38 +238,38 @@ UBX_StatusTypeDef GNSS_configure(void)
 
 
 	/* Send a CFG-RATE message to define update rate */
-	memset(&(Parser.buf_packet.payload_tx_cfg_rate), 0, sizeof(Parser.buf_packet.payload_tx_cfg_rate));
-	Parser.buf_packet.payload_tx_cfg_rate.measRate	= hgps->Init.MeasurementRate;
-	Parser.buf_packet.payload_tx_cfg_rate.navRate 	= hgps->Init.navigationRate;
-	Parser.buf_packet.payload_tx_cfg_rate.timeRef	  = hgps->Init.timeRef;
+	memset(&(_Parser->buf_packet.payload_tx_cfg_rate), 0, sizeof(_Parser->buf_packet.payload_tx_cfg_rate));
+	_Parser->buf_packet.payload_tx_cfg_rate.measRate	= hgps->Init.MeasurementRate;
+	_Parser->buf_packet.payload_tx_cfg_rate.navRate 	= hgps->Init.navigationRate;
+	_Parser->buf_packet.payload_tx_cfg_rate.timeRef	  = hgps->Init.timeRef;
 
-	GNSS_send_message(UBX_MSG_CFG_RATE, Parser.buf_packet.raw, sizeof(Parser.buf_packet.payload_tx_cfg_rate));
+	GNSS_send_message(_Parser, UBX_MSG_CFG_RATE, _Parser->buf_packet.raw, sizeof(_Parser->buf_packet.payload_tx_cfg_rate));
 
-	if (wait_for_ack(UBX_MSG_CFG_RATE) != UBX_ACK_OK) {
+	if (wait_for_ack(_Parser, UBX_MSG_CFG_RATE) != UBX_ACK_OK) {
 		hgps->errorStatus = UBX_CFG_NO_RES_ACK;
 		return UBX_CFG_NO_RES_ACK;
 	}
 
 
 	/* send a NAV5 message to set the options for the internal filter */
-	memset(&(Parser.buf_packet.payload_tx_cfg_nav5), 0, sizeof(Parser.buf_packet.payload_tx_cfg_nav5));
-	Parser.buf_packet.payload_tx_cfg_nav5.mask		= UBX_TX_CFG_NAV5_MASK;
-	Parser.buf_packet.payload_tx_cfg_nav5.dynModel= hgps->Init.dynModel;
-	Parser.buf_packet.payload_tx_cfg_nav5.fixMode	= hgps->Init.fixMode;
+	memset(&(_Parser->buf_packet.payload_tx_cfg_nav5), 0, sizeof(_Parser->buf_packet.payload_tx_cfg_nav5));
+	_Parser->buf_packet.payload_tx_cfg_nav5.mask		= UBX_TX_CFG_NAV5_MASK;
+	_Parser->buf_packet.payload_tx_cfg_nav5.dynModel= hgps->Init.dynModel;
+	_Parser->buf_packet.payload_tx_cfg_nav5.fixMode	= hgps->Init.fixMode;
 
-	GNSS_send_message(UBX_MSG_CFG_NAV5, Parser.buf_packet.raw, sizeof(Parser.buf_packet.payload_tx_cfg_nav5));
+	GNSS_send_message(_Parser, UBX_MSG_CFG_NAV5, _Parser->buf_packet.raw, sizeof(_Parser->buf_packet.payload_tx_cfg_nav5));
 
-	if (wait_for_ack(UBX_MSG_CFG_NAV5) != UBX_ACK_OK) {
+	if (wait_for_ack(_Parser, UBX_MSG_CFG_NAV5) != UBX_ACK_OK) {
 		hgps->errorStatus = UBX_CFG_NO_RES_ACK;
 		return UBX_CFG_NO_RES_ACK;
 	}
 
 #ifdef UBX_CONFIGURE_SBAS
 	/* send a SBAS message to set the SBAS options */
-	memset(&(Parser.buf_packet.payload_tx_cfg_sbas, 0, sizeof(Parser.buf_packet.payload_tx_cfg_sbas));
+	memset(&(_Parser->buf_packet.payload_tx_cfg_sbas, 0, sizeof(_Parser->buf_packet.payload_tx_cfg_sbas));
 	_buf.payload_tx_cfg_sbas.mode		= UBX_TX_CFG_SBAS_MODE;
 
-	GNSS_send_message(UBX_MSG_CFG_SBAS, Parser.buf_packet.raw, sizeof(Parser.buf_packet.payload_tx_cfg_sbas)))
+	GNSS_send_message(UBX_MSG_CFG_SBAS, _Parser->buf_packet.raw, sizeof(_Parser->buf_packet.payload_tx_cfg_sbas)))
 
 
 
@@ -267,8 +287,8 @@ UBX_StatusTypeDef GNSS_configure(void)
 
 	/* try to set rate for NAV-PVT */
 	/* (implemented for ubx7+ modules only, use NAV-SOL, NAV-POSLLH, NAV-VELNED and NAV-TIMEUTC for ubx6) */
-	configure_message_rate(UBX_MSG_NAV_PVT, 1);
-	if (wait_for_ack(UBX_MSG_CFG_MSG) != UBX_ACK_OK) {
+	configure_message_rate(_Parser, UBX_MSG_NAV_PVT, 1);
+	if (wait_for_ack(_Parser, UBX_MSG_CFG_MSG) != UBX_ACK_OK) {
 		log_message("NAV-PVT not handled");
 		hgps->use_nav_pvt = false;
 	} else {
@@ -277,35 +297,35 @@ UBX_StatusTypeDef GNSS_configure(void)
 
 	if (!(hgps->use_nav_pvt)) {
 
-		configure_message_rate(UBX_MSG_NAV_TIMEUTC, 5);// the bigger the rate the smaller the frequency ( 1hz here) for 5hz GPS
-		if(wait_for_ack(UBX_MSG_CFG_MSG) != UBX_ACK_OK)
+		configure_message_rate(_Parser, UBX_MSG_NAV_TIMEUTC, 5);// the bigger the rate the smaller the frequency ( 1hz here) for 5hz GPS
+		if(wait_for_ack(_Parser, UBX_MSG_CFG_MSG) != UBX_ACK_OK)
 		{
 			hgps->errorStatus = UBX_CFG_NO_RES_ACK;
 			return UBX_CFG_NO_RES_ACK;
 		}
 
-		configure_message_rate(UBX_MSG_NAV_POSLLH, 1);
-		if (wait_for_ack(UBX_MSG_CFG_MSG) != UBX_ACK_OK) {
+		configure_message_rate(_Parser, UBX_MSG_NAV_POSLLH, 1);
+		if (wait_for_ack(_Parser, UBX_MSG_CFG_MSG) != UBX_ACK_OK) {
 			hgps->errorStatus = UBX_CFG_NO_RES_ACK;
 			return UBX_CFG_NO_RES_ACK;
 		}
 
-		configure_message_rate(UBX_MSG_NAV_SOL, 1);
-		if (wait_for_ack(UBX_MSG_CFG_MSG) != UBX_ACK_OK) {
+		configure_message_rate(_Parser, UBX_MSG_NAV_SOL, 1);
+		if (wait_for_ack(_Parser, UBX_MSG_CFG_MSG) != UBX_ACK_OK) {
 			hgps->errorStatus = UBX_CFG_NO_RES_ACK;
 			return UBX_CFG_NO_RES_ACK;
 		}
 
 
-		configure_message_rate(UBX_MSG_NAV_VELNED, 1);
-		if (wait_for_ack(UBX_MSG_CFG_MSG) != UBX_ACK_OK) {
+		configure_message_rate(_Parser, UBX_MSG_NAV_VELNED, 1);
+		if (wait_for_ack(_Parser, UBX_MSG_CFG_MSG) != UBX_ACK_OK) {
 			hgps->errorStatus = UBX_CFG_NO_RES_ACK;
 			return UBX_CFG_NO_RES_ACK;
 		}
 	}
 
-	configure_message_rate(UBX_MSG_NAV_SVINFO, (hgps->satellite_info != NULL) ? 5 : 0);
-	if (wait_for_ack(UBX_MSG_CFG_MSG) != UBX_ACK_OK ) {
+	configure_message_rate(_Parser, UBX_MSG_NAV_SVINFO, (hgps->satellite_info != NULL) ? 5 : 0);
+	if (wait_for_ack(_Parser, UBX_MSG_CFG_MSG) != UBX_ACK_OK ) {
 		log_message("not handling NAV-SVINFO");
 		hgps->errorStatus = UBX_CFG_NO_RES_ACK;
 		return UBX_CFG_NO_RES_ACK;
@@ -328,7 +348,7 @@ UBX_StatusTypeDef GNSS_configure(void)
 //		log_message("cant resume");
 //	}
 
-	Parser.configured= true;
+	_Parser->configured= true;
 	hgps->errorStatus = UBX_OK;
 	return UBX_OK;
 }//end fonction configure
@@ -342,9 +362,9 @@ UBX_StatusTypeDef GNSS_configure(void)
  * @param  length : the size of the payload
  * @retval None
  */
-static void GNSS_send_message(const uint16_t msg, const uint8_t *payload, const uint16_t length)
+void GNSS_send_message(UBX_ParserHandler* _Parser, const uint16_t msg, const uint8_t *payload, const uint16_t length)
 {
-	UART_HandleTypeDef *huart = Parser.hgps->huart;
+	UART_HandleTypeDef *huart = _Parser->hgps->huart;
 	ubx_header_t   header;// = {UBX_SYNC1, UBX_SYNC2};
 	ubx_checksum_t checksum = {0, 0};
 
@@ -357,7 +377,7 @@ static void GNSS_send_message(const uint16_t msg, const uint8_t *payload, const 
 	calc_checksum(((uint8_t*)&header) + 2, sizeof(header) - 2, &checksum);  // skip 2 sync bytes
 	if (payload != NULL)
 		calc_checksum(payload, length, &checksum);
-	// Pause the DMA reception 
+	// Pause the DMA reception
 	//	if(HAL_UART_DMAPause(huart) != HAL_OK)
 	//	{
 	//		log_message("cant pause");
@@ -365,7 +385,7 @@ static void GNSS_send_message(const uint16_t msg, const uint8_t *payload, const 
 	//send the message
 
 	HAL_StatusTypeDef response = HAL_BUSY;
-	int test = 0;
+
 	if(response != HAL_OK)
 	{
 		response = HAL_UART_Transmit(huart, (uint8_t *)header.headerBytes, UBX_HEADER_SIZE, 1000);
@@ -457,26 +477,26 @@ void GNSS_log(GNSS_HandleTypeDef *hgps)
  *					in the UBX parser state machine
  * @retval None
  */
-static void UBX_resetParser(void)
+void UBX_resetParser(UBX_ParserHandler *_Parser)
 {
-	Parser.decode_state = UBX_DECODE_SYNC1;
-	Parser.rx_ck_a = 0;
-	Parser.rx_ck_b = 0;
-	Parser.rx_payload_length = 0;
-	Parser.rx_payload_index = 0;
+	_Parser->decode_state = UBX_DECODE_SYNC1;
+	_Parser->rx_ck_a = 0;
+	_Parser->rx_ck_b = 0;
+	_Parser->rx_payload_length = 0;
+	_Parser->rx_payload_index = 0;
 }
 
 /**
  * @brief  Initialise the parser for the UBX state machine
  * @retval None
  */
-static void UBX_Parser_Init(void)
+void UBX_Parser_Init(UBX_ParserHandler *_Parser)
 {
-	Parser.configured     = false;
-	Parser.rtc_configured = false;
-	Parser.ack_state  = UBX_ACK_IDLE;
-	Parser.ack_waiting_msg =0;
-	UBX_resetParser();
+	_Parser->configured     = false;
+	_Parser->rtc_configured = false;
+	_Parser->ack_state  = UBX_ACK_IDLE;
+	_Parser->ack_waiting_msg =0;
+	UBX_resetParser(_Parser);
 }
 
 //TODO: change the return val for UBX_StatusTypeDef
@@ -486,11 +506,12 @@ static void UBX_Parser_Init(void)
  * @param  b: the byte received from the GNSS
  * @retval  0 = decoding, 1 = message handled, 2 = sat info message handled
  */
-int  parse_char(const uint8_t b)
+
+int  parse_char(UBX_ParserHandler* _Parser, const uint8_t b)
 {
 	int ret = 0;
 	//ubx_decode_state_t decode_state = hgps->_decode_state;
-	switch (Parser.decode_state) 
+	switch (_Parser->decode_state)
 	{
 
 	/* Expecting Sync1 */
@@ -498,7 +519,7 @@ int  parse_char(const uint8_t b)
 		if (b == UBX_SYNC1) {	// Sync1 found --> expecting Sync2
 			//printf("A\r\n");
 //		  Send_serial_message("a");
-			Parser.decode_state = UBX_DECODE_SYNC2;
+			_Parser->decode_state = UBX_DECODE_SYNC2;
 		}
 		break;
 
@@ -506,80 +527,80 @@ int  parse_char(const uint8_t b)
 	case UBX_DECODE_SYNC2:
 		if (b == UBX_SYNC2) {	// Sync2 found --> expecting Class
 //		  Send_serial_message("b");
-			Parser.decode_state = UBX_DECODE_CLASS;
+			_Parser->decode_state = UBX_DECODE_CLASS;
 
 		} else {		// Sync1 not followed by Sync2: reset parser
-			UBX_resetParser();
+			UBX_resetParser(_Parser);
 		}
 		break;
 
 		/* Expecting Class */
 	case UBX_DECODE_CLASS:
 //	  Send_serial_message("c");
-		add_byte_to_checksum(b);   // checksum is calculated for everything except Sync and Checksum bytes
-		Parser.rx_msg = b;
-		Parser.decode_state = UBX_DECODE_ID;
+		add_byte_to_checksum(_Parser, b);   // checksum is calculated for everything except Sync and Checksum bytes
+		_Parser->rx_msg = b;
+		_Parser->decode_state = UBX_DECODE_ID;
 		break;
 
 		/* Expecting ID */
 	case UBX_DECODE_ID:
 //	  Send_serial_message("d");
-		add_byte_to_checksum(b); 
-		Parser.rx_msg |= b << 8;
-		Parser.decode_state = UBX_DECODE_LENGTH1;
+		add_byte_to_checksum(_Parser, b);
+		_Parser->rx_msg |= b << 8;
+		_Parser->decode_state = UBX_DECODE_LENGTH1;
 		break;
 
 		/* Expecting first length byte */
 	case UBX_DECODE_LENGTH1:
 //	  Send_serial_message("e");
-		add_byte_to_checksum(b); 
-		Parser.rx_payload_length = b;
-		Parser.decode_state = UBX_DECODE_LENGTH2;
+		add_byte_to_checksum(_Parser, b);
+		_Parser->rx_payload_length = b;
+		_Parser->decode_state = UBX_DECODE_LENGTH2;
 		break;
 
 		/* Expecting second length byte */
 	case UBX_DECODE_LENGTH2:
 
 //		add_byte_to_checksum("e1");
-		Parser.rx_payload_length |= b << 8;	// calculate payload size
+		_Parser->rx_payload_length |= b << 8;	// calculate payload size
 		//printf("L:%d\r\n\n", hgps->_rx_payload_length);
-		if (payload_rx_init() != 0) {	// start payload reception change to GNSS_status eventually!!
+		if (payload_rx_init(_Parser) != 0) {	// start payload reception change to GNSS_status eventually!!
 			// payload will not be handled, discard message
-			UBX_resetParser();
+			UBX_resetParser(_Parser);
 		} else {
-			Parser.decode_state = (Parser.rx_payload_length > 0) ? UBX_DECODE_PAYLOAD : UBX_DECODE_CHKSUM1;
+			_Parser->decode_state = (_Parser->rx_payload_length > 0) ? UBX_DECODE_PAYLOAD : UBX_DECODE_CHKSUM1;
 		}
 		break;
 
 		/* Expecting payload */
 	case UBX_DECODE_PAYLOAD:
 //	  Send_serial_message("f");
-		add_byte_to_checksum(b); 
+		add_byte_to_checksum(_Parser, b);
 		//printf("D:%d, cs:%d ", b, hgps->_rx_ck_a);
-		switch (Parser.rx_msg) {
+		switch (_Parser->rx_msg) {
 		case UBX_MSG_NAV_SVINFO:
-			ret = payload_rx_add_nav_svinfo(b);	// add a NAV-SVINFO payload byte
+			ret = payload_rx_add_nav_svinfo(_Parser, b);	// add a NAV-SVINFO payload byte
 			break;
 		case UBX_MSG_MON_VER:
-			ret = payload_rx_add_mon_ver(b);	// add a MON-VER payload byte
+			ret = payload_rx_add_mon_ver(_Parser, b);	// add a MON-VER payload byte
 			break;
 		case UBX_MSG_RXM_RAWX:
-			ret = payload_rx_add_rxm_rawx(b);
+			ret = payload_rx_add_rxm_rawx(_Parser, b);
 			break;
 		case UBX_MSG_RXM_SFRBX:
 			//			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
-			ret = payload_rx_add_rxm_sfrbx(b);
+			ret = payload_rx_add_rxm_sfrbx(_Parser, b);
 			break;
 		default:
-			ret = payload_rx_add(b);		// add a payload byte
+			ret = payload_rx_add(_Parser, b);		// add a payload byte
 			break;
 		}
 		if (ret < 0) {
 			// payload not handled, discard message
-			UBX_resetParser();
+			UBX_resetParser(_Parser);
 		} else if (ret > 0) {
 			// payload complete, expecting checksum
-			Parser.decode_state = UBX_DECODE_CHKSUM1;
+			_Parser->decode_state = UBX_DECODE_CHKSUM1;
 		} else {
 			// expecting more payload, stay in state UBX_DECODE_PAYLOAD
 		}
@@ -590,13 +611,13 @@ int  parse_char(const uint8_t b)
 		case UBX_DECODE_CHKSUM1:
 
 
-			if (Parser.rx_ck_a != b) {
+			if (_Parser->rx_ck_a != b) {
 
 				//HAL_GPIO_TogglePin(GPIOI, GPIO_PIN_9);
 				//log_message("ubx checksum1 err ");
-				UBX_resetParser();
+				UBX_resetParser(_Parser);
 			} else {
-				Parser.decode_state = UBX_DECODE_CHKSUM2;
+				_Parser->decode_state = UBX_DECODE_CHKSUM2;
 			}
 			break;
 
@@ -604,19 +625,19 @@ int  parse_char(const uint8_t b)
 		case UBX_DECODE_CHKSUM2:
 
 
-      ret = payload_rx_done();  // finish payload processing
+      ret = payload_rx_done(_Parser);  // finish payload processing
 
 
 
-		  if (Parser.rx_ck_b != b) {
+		  if (_Parser->rx_ck_b != b) {
 
 			} else {
-				ret = payload_rx_done();	// finish payload processing
+				ret = payload_rx_done(_Parser);	// finish payload processing
 
 				Send_serial_message("GPS SUUSSS\r\n");
 			}
 			//printf("got 1 frame\r\n");
-			UBX_resetParser();
+			UBX_resetParser(_Parser);
 			break;
 
 		default:
@@ -634,66 +655,66 @@ int  parse_char(const uint8_t b)
  *					and if we do handle the message type. INTERRUPTION CONTEXT
  * @retval -1 = abort, 0 = continue
  */
-static int  payload_rx_init(void)
+int  payload_rx_init(UBX_ParserHandler *_Parser)
 {
 	//change to GNSS_StatusTypeDef eventually
 	int ret = 0;
-	GNSS_HandleTypeDef *hgps = Parser.hgps;
-	Parser.rx_state = UBX_RXMSG_HANDLE;	// handle by default
+	GNSS_HandleTypeDef *hgps = _Parser->hgps;
+	_Parser->rx_state = UBX_RXMSG_HANDLE;	// handle by default
 
-	switch (Parser.rx_msg) {
+	switch (_Parser->rx_msg) {
 	case UBX_MSG_NAV_PVT:
-		if (   (Parser.rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX7)		/* u-blox 7 msg format */
-				&& (Parser.rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX8))	/* u-blox 8+ msg format */
-			Parser.rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!(Parser.configured))
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		if (   (_Parser->rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX7)		/* u-blox 7 msg format */
+				&& (_Parser->rx_payload_length != UBX_PAYLOAD_RX_NAV_PVT_SIZE_UBX8))	/* u-blox 8+ msg format */
+			_Parser->rx_state = UBX_RXMSG_ERROR_LENGTH;
+		else if (!(_Parser->configured))
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
 		else if (!(hgps->use_nav_pvt))
-			Parser.rx_state = UBX_RXMSG_DISABLE;	// disable if not using NAV-PVT
+			_Parser->rx_state = UBX_RXMSG_DISABLE;	// disable if not using NAV-PVT
 		break;
 
 	case UBX_MSG_NAV_POSLLH:
-		if (Parser.rx_payload_length != sizeof(ubx_payload_rx_nav_posllh_t))
-			Parser.rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!(Parser.configured))
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		if (_Parser->rx_payload_length != sizeof(ubx_payload_rx_nav_posllh_t))
+			_Parser->rx_state = UBX_RXMSG_ERROR_LENGTH;
+		else if (!(_Parser->configured))
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
 		else if (hgps->use_nav_pvt)
-			Parser.rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
+			_Parser->rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
 		break;
 
 	case UBX_MSG_NAV_SOL:
-		if (Parser.rx_payload_length != sizeof(ubx_payload_rx_nav_sol_t))
-			Parser.rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!(Parser.configured))
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		if (_Parser->rx_payload_length != sizeof(ubx_payload_rx_nav_sol_t))
+			_Parser->rx_state = UBX_RXMSG_ERROR_LENGTH;
+		else if (!(_Parser->configured))
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
 		else if (hgps->use_nav_pvt)
-			Parser.rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
+			_Parser->rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
 		break;
 
 	case UBX_MSG_NAV_TIMEUTC:
-		if (Parser.rx_payload_length != sizeof(ubx_payload_rx_nav_timeutc_t))
-			Parser.rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!(Parser.configured))
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		if (_Parser->rx_payload_length != sizeof(ubx_payload_rx_nav_timeutc_t))
+			_Parser->rx_state = UBX_RXMSG_ERROR_LENGTH;
+		else if (!(_Parser->configured))
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
 		else if (hgps->use_nav_pvt)
-			Parser.rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
+			_Parser->rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
 		break;
 
 	case UBX_MSG_NAV_SVINFO:
 		//		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
 		if (hgps->use_sat_info == false || hgps->satellite_info == NULL)
-			Parser.rx_state = UBX_RXMSG_DISABLE;	// disable if sat info not requested or not initialise
-		else if (!(Parser.configured))
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if not configured
+			_Parser->rx_state = UBX_RXMSG_DISABLE;	// disable if sat info not requested or not initialise
+		else if (!(_Parser->configured))
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if not configured
 		else
 			memset(hgps->satellite_info, 0, sizeof(*(hgps->satellite_info)));	// initialize sat info
 		break;
 
 	case UBX_MSG_RXM_RAWX:
 		if (hgps->use_gnss_meas == false || hgps->gnss_meas == NULL)
-			Parser.rx_state = UBX_RXMSG_DISABLE;	// disable if rxm not requested or not initialise
-		else if (!(Parser.configured))
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if not configured
+			_Parser->rx_state = UBX_RXMSG_DISABLE;	// disable if rxm not requested or not initialise
+		else if (!(_Parser->configured))
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if not configured
 		else
 			memset(hgps->gnss_meas, 0, sizeof(*(hgps->gnss_meas)));	// initialize gnss measurements
 		break;
@@ -701,54 +722,54 @@ static int  payload_rx_init(void)
 	case UBX_MSG_RXM_SFRBX:
 
 		if (hgps->use_subFrame == false || hgps->subFrames == NULL)
-			Parser.rx_state = UBX_RXMSG_DISABLE;	// disable if rxm not requested or not initialise
-		else if (!(Parser.configured))
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if not configured
+			_Parser->rx_state = UBX_RXMSG_DISABLE;	// disable if rxm not requested or not initialise
+		else if (!(_Parser->configured))
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if not configured
 		else
 			memset(hgps->subFrames, 0, sizeof(*(hgps->subFrames)));	// initialize gnss measurements
 		break;
 
 
 	case UBX_MSG_NAV_VELNED:
-		if (Parser.rx_payload_length != sizeof(ubx_payload_rx_nav_velned_t))
-			Parser.rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!(Parser.configured))
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		if (_Parser->rx_payload_length != sizeof(ubx_payload_rx_nav_velned_t))
+			_Parser->rx_state = UBX_RXMSG_ERROR_LENGTH;
+		else if (!(_Parser->configured))
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
 		else if (hgps->use_nav_pvt)
-			Parser.rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
+			_Parser->rx_state = UBX_RXMSG_DISABLE;	// disable if using NAV-PVT instead
 		break;
 
 	case UBX_MSG_MON_VER:
 		break;		// unconditionally handle this message
 
 	case UBX_MSG_MON_HW:
-		if (   (Parser.rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx6_t))	/* u-blox 6 msg format */
-				&& (Parser.rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx7_t)))	/* u-blox 7+ msg format */
-			Parser.rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (!(Parser.configured))
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
+		if (   (_Parser->rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx6_t))	/* u-blox 6 msg format */
+				&& (_Parser->rx_payload_length != sizeof(ubx_payload_rx_mon_hw_ubx7_t)))	/* u-blox 7+ msg format */
+			_Parser->rx_state = UBX_RXMSG_ERROR_LENGTH;
+		else if (!(_Parser->configured))
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if not _configured
 		break;
 
 	case UBX_MSG_ACK_ACK:
-		if (Parser.rx_payload_length != sizeof(ubx_payload_rx_ack_ack_t))
-			Parser.rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (Parser.configured)
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if _configured
+		if (_Parser->rx_payload_length != sizeof(ubx_payload_rx_ack_ack_t))
+			_Parser->rx_state = UBX_RXMSG_ERROR_LENGTH;
+		else if (_Parser->configured)
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if _configured
 		break;
 
 	case UBX_MSG_ACK_NAK:
-		if (Parser.rx_payload_length != sizeof(ubx_payload_rx_ack_nak_t))
-			Parser.rx_state = UBX_RXMSG_ERROR_LENGTH;
-		else if (Parser.configured)
-			Parser.rx_state = UBX_RXMSG_IGNORE;	// ignore if _configured
+		if (_Parser->rx_payload_length != sizeof(ubx_payload_rx_ack_nak_t))
+			_Parser->rx_state = UBX_RXMSG_ERROR_LENGTH;
+		else if (_Parser->configured)
+			_Parser->rx_state = UBX_RXMSG_IGNORE;	// ignore if _configured
 		break;
 
 	default:
-		Parser.rx_state = UBX_RXMSG_DISABLE;	// disable all other messages
+		_Parser->rx_state = UBX_RXMSG_DISABLE;	// disable all other messages
 		break;
 	}
 
-	switch (Parser.rx_state) {
+	switch (_Parser->rx_state) {
 	case UBX_RXMSG_HANDLE:	// handle message
 	case UBX_RXMSG_IGNORE:	// ignore message but don't report error
 		ret = 0;
@@ -776,42 +797,42 @@ static int  payload_rx_init(void)
  * @param  b: the byte received from the GNSS and added to the payload
  * @retval  -1 = error, 0 = ok, 1 = payload completed
  */
-static int  payload_rx_add_nav_svinfo(const uint8_t b)
+int  payload_rx_add_nav_svinfo(UBX_ParserHandler *_Parser, const uint8_t b)
 {
 
 	int ret = 0;
-	GNSS_HandleTypeDef *hgps = Parser.hgps;
+	GNSS_HandleTypeDef *hgps = _Parser->hgps;
 
 
-	if (Parser.rx_payload_index < sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
+	if (_Parser->rx_payload_index < sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
 		// Fill Part 1 buffer
-		Parser.buf_packet.raw[Parser.rx_payload_index] = b;
+		_Parser->buf_packet.raw[_Parser->rx_payload_index] = b;
 	}
 	else 
 	{
-		if (Parser.rx_payload_index == sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
+		if (_Parser->rx_payload_index == sizeof(ubx_payload_rx_nav_svinfo_part1_t)) {
 			// Part 1 complete: decode Part 1 buffer
-			hgps->satellite_info->count = MIN(Parser.buf_packet.payload_rx_nav_svinfo_part1.numCh, SAT_INFO_MAX_SATELLITES);
+			hgps->satellite_info->count = MIN(_Parser->buf_packet.payload_rx_nav_svinfo_part1.numCh, SAT_INFO_MAX_SATELLITES);
 			//UBX_TRACE_SVINFO("SVINFO len %u  numCh %u\n", (unsigned)_rx_payload_length, (unsigned)_buf.payload_rx_nav_svinfo_part1.numCh);
 		}
-		if (Parser.rx_payload_index < sizeof(ubx_payload_rx_nav_svinfo_part1_t) + hgps->satellite_info->count * sizeof(ubx_payload_rx_nav_svinfo_part2_t)) {
+		if (_Parser->rx_payload_index < sizeof(ubx_payload_rx_nav_svinfo_part1_t) + hgps->satellite_info->count * sizeof(ubx_payload_rx_nav_svinfo_part2_t)) {
 			// Still room in satellite_info: fill Part 2 buffer
-			unsigned buf_index = (Parser.rx_payload_index - sizeof(ubx_payload_rx_nav_svinfo_part1_t)) % sizeof(ubx_payload_rx_nav_svinfo_part2_t);
-			Parser.buf_packet.raw[buf_index] = b;
+			unsigned buf_index = (_Parser->rx_payload_index - sizeof(ubx_payload_rx_nav_svinfo_part1_t)) % sizeof(ubx_payload_rx_nav_svinfo_part2_t);
+			_Parser->buf_packet.raw[buf_index] = b;
 			if (buf_index == sizeof(ubx_payload_rx_nav_svinfo_part2_t) - 1) {
 				// Part 2 complete: decode Part 2 buffer
-				unsigned sat_index 													= (Parser.rx_payload_index - sizeof(ubx_payload_rx_nav_svinfo_part1_t)) / sizeof(ubx_payload_rx_nav_svinfo_part2_t);
-				hgps->satellite_info->used[sat_index]				= (uint8_t)(Parser.buf_packet.payload_rx_nav_svinfo_part2.flags & 0x01);
-				hgps->satellite_info->snr[sat_index]				= (uint8_t)(Parser.buf_packet.payload_rx_nav_svinfo_part2.cno);
-				hgps->satellite_info->elevation[sat_index]	= (uint8_t)(Parser.buf_packet.payload_rx_nav_svinfo_part2.elev);
-				hgps->satellite_info->azimuth[sat_index]		= (uint8_t)((float)(Parser.buf_packet.payload_rx_nav_svinfo_part2.azim) * 255.0f / 360.0f);
-				hgps->satellite_info->svid[sat_index]				= (uint8_t)(Parser.buf_packet.payload_rx_nav_svinfo_part2.svid);
+				unsigned sat_index 													= (_Parser->rx_payload_index - sizeof(ubx_payload_rx_nav_svinfo_part1_t)) / sizeof(ubx_payload_rx_nav_svinfo_part2_t);
+				hgps->satellite_info->used[sat_index]				= (uint8_t)(_Parser->buf_packet.payload_rx_nav_svinfo_part2.flags & 0x01);
+				hgps->satellite_info->snr[sat_index]				= (uint8_t)(_Parser->buf_packet.payload_rx_nav_svinfo_part2.cno);
+				hgps->satellite_info->elevation[sat_index]	= (uint8_t)(_Parser->buf_packet.payload_rx_nav_svinfo_part2.elev);
+				hgps->satellite_info->azimuth[sat_index]		= (uint8_t)((float)(_Parser->buf_packet.payload_rx_nav_svinfo_part2.azim) * 255.0f / 360.0f);
+				hgps->satellite_info->svid[sat_index]				= (uint8_t)(_Parser->buf_packet.payload_rx_nav_svinfo_part2.svid);
 
 			}
 		}
 	}
 
-	if (++(Parser.rx_payload_index) >= Parser.rx_payload_length) {
+	if (++(_Parser->rx_payload_index) >= _Parser->rx_payload_length) {
 		ret = 1;	// payload received completely
 	}
 
@@ -820,80 +841,80 @@ static int  payload_rx_add_nav_svinfo(const uint8_t b)
 
 
 
-static int  payload_rx_add_rxm_rawx(const uint8_t b)
+int  payload_rx_add_rxm_rawx(UBX_ParserHandler *_Parser, const uint8_t b)
 {
 	int ret = 0;
-	GNSS_HandleTypeDef *hgps = Parser.hgps;
+	GNSS_HandleTypeDef *hgps = _Parser->hgps;
 
 
-	if (Parser.rx_payload_index < sizeof(ubx_payload_rx_rxm_rawx_part1_t)) {
+	if (_Parser->rx_payload_index < sizeof(ubx_payload_rx_rxm_rawx_part1_t)) {
 		// Fill Part 1 buffer
-		Parser.buf_packet.raw[Parser.rx_payload_index] = b;
+		_Parser->buf_packet.raw[_Parser->rx_payload_index] = b;
 	}
 	else 
 	{
-		if (Parser.rx_payload_index == sizeof(ubx_payload_rx_rxm_rawx_part1_t)) {
+		if (_Parser->rx_payload_index == sizeof(ubx_payload_rx_rxm_rawx_part1_t)) {
 			// Part 1 complete: decode Part 1 buffer
-			hgps->gnss_meas->numMeas = MIN(Parser.buf_packet.payload_rx_rxm_rawx_part1.numMeas, RAW_MAX_MEASURE);
+			hgps->gnss_meas->numMeas = MIN(_Parser->buf_packet.payload_rx_rxm_rawx_part1.numMeas, RAW_MAX_MEASURE);
 		}
-		if (Parser.rx_payload_index < sizeof(ubx_payload_rx_rxm_rawx_part1_t) + hgps->gnss_meas->numMeas * sizeof(ubx_payload_rx_rxm_rawx_part2_t)) {
+		if (_Parser->rx_payload_index < sizeof(ubx_payload_rx_rxm_rawx_part1_t) + hgps->gnss_meas->numMeas * sizeof(ubx_payload_rx_rxm_rawx_part2_t)) {
 			// Still room in satellite_info: fill Part 2 buffer
-			unsigned buf_index = (Parser.rx_payload_index - sizeof(ubx_payload_rx_rxm_rawx_part1_t)) % sizeof(ubx_payload_rx_rxm_rawx_part2_t);
-			Parser.buf_packet.raw[buf_index] = b;
+			unsigned buf_index = (_Parser->rx_payload_index - sizeof(ubx_payload_rx_rxm_rawx_part1_t)) % sizeof(ubx_payload_rx_rxm_rawx_part2_t);
+			_Parser->buf_packet.raw[buf_index] = b;
 			if (buf_index == sizeof(ubx_payload_rx_rxm_rawx_part2_t) - 1) {
 				// Part 2 complete: decode Part 2 buffer
-				unsigned meas_index 									= (Parser.rx_payload_index - sizeof(ubx_payload_rx_rxm_rawx_part1_t)) / sizeof(ubx_payload_rx_rxm_rawx_part2_t);
-				hgps->gnss_meas->prMes[meas_index]		= (double)(Parser.buf_packet.payload_rx_rxm_rawx_part2.prMes);
-				hgps->gnss_meas->cpMes[meas_index]		= (double)(Parser.buf_packet.payload_rx_rxm_rawx_part2.cpMes);
-				hgps->gnss_meas->doMes[meas_index]		= (float)(Parser.buf_packet.payload_rx_rxm_rawx_part2.doMes);
-				hgps->gnss_meas->gnssId[meas_index]		= (uint8_t)(Parser.buf_packet.payload_rx_rxm_rawx_part2.gnssId);
-				hgps->gnss_meas->svId[meas_index]		  = (uint8_t)(Parser.buf_packet.payload_rx_rxm_rawx_part2.svId);
-				hgps->gnss_meas->locktime[meas_index] = (uint16_t)(Parser.buf_packet.payload_rx_rxm_rawx_part2.locktime);
-				hgps->gnss_meas->cno[meas_index]			=	(uint8_t)(Parser.buf_packet.payload_rx_rxm_rawx_part2.cno);
+				unsigned meas_index 									= (_Parser->rx_payload_index - sizeof(ubx_payload_rx_rxm_rawx_part1_t)) / sizeof(ubx_payload_rx_rxm_rawx_part2_t);
+				hgps->gnss_meas->prMes[meas_index]		= (double)(_Parser->buf_packet.payload_rx_rxm_rawx_part2.prMes);
+				hgps->gnss_meas->cpMes[meas_index]		= (double)(_Parser->buf_packet.payload_rx_rxm_rawx_part2.cpMes);
+				hgps->gnss_meas->doMes[meas_index]		= (float)(_Parser->buf_packet.payload_rx_rxm_rawx_part2.doMes);
+				hgps->gnss_meas->gnssId[meas_index]		= (uint8_t)(_Parser->buf_packet.payload_rx_rxm_rawx_part2.gnssId);
+				hgps->gnss_meas->svId[meas_index]		  = (uint8_t)(_Parser->buf_packet.payload_rx_rxm_rawx_part2.svId);
+				hgps->gnss_meas->locktime[meas_index] = (uint16_t)(_Parser->buf_packet.payload_rx_rxm_rawx_part2.locktime);
+				hgps->gnss_meas->cno[meas_index]			=	(uint8_t)(_Parser->buf_packet.payload_rx_rxm_rawx_part2.cno);
 
 			}
 		}
 	}
 
-	if (++(Parser.rx_payload_index) >= Parser.rx_payload_length) {
+	if (++(_Parser->rx_payload_index) >= _Parser->rx_payload_length) {
 		ret = 1;	// payload received completely
 	}
 
 	return ret;
 }
 
-static int  payload_rx_add_rxm_sfrbx(const uint8_t b)
+int  payload_rx_add_rxm_sfrbx(UBX_ParserHandler *_Parser, const uint8_t b)
 {
 
 	int ret = 0;
-	GNSS_HandleTypeDef *hgps = Parser.hgps;
+	GNSS_HandleTypeDef *hgps = _Parser->hgps;
 
-	if (Parser.rx_payload_index < sizeof(ubx_payload_rx_rxm_sfrbx_part1_t)) {
+	if (_Parser->rx_payload_index < sizeof(ubx_payload_rx_rxm_sfrbx_part1_t)) {
 		// Fill Part 1 buffer
-		Parser.buf_packet.raw[Parser.rx_payload_index] = b;
+		_Parser->buf_packet.raw[_Parser->rx_payload_index] = b;
 	}
 	else 
 	{
-		if (Parser.rx_payload_index == sizeof(ubx_payload_rx_rxm_sfrbx_part1_t)) {
+		if (_Parser->rx_payload_index == sizeof(ubx_payload_rx_rxm_sfrbx_part1_t)) {
 			// Part 1 complete: decode Part 1 buffer
-			hgps->subFrames->numWord= MIN(Parser.buf_packet.payload_rx_rxm_sfrbx_part1.numWords, SUBFRAME_MAX_WORD);
-			hgps->subFrames->freqId = Parser.buf_packet.payload_rx_rxm_sfrbx_part1.freqId;
-			hgps->subFrames->gnssId = Parser.buf_packet.payload_rx_rxm_sfrbx_part1.gnssId;
-			hgps->subFrames->svId   = Parser.buf_packet.payload_rx_rxm_sfrbx_part1.svId;
+			hgps->subFrames->numWord= MIN(_Parser->buf_packet.payload_rx_rxm_sfrbx_part1.numWords, SUBFRAME_MAX_WORD);
+			hgps->subFrames->freqId = _Parser->buf_packet.payload_rx_rxm_sfrbx_part1.freqId;
+			hgps->subFrames->gnssId = _Parser->buf_packet.payload_rx_rxm_sfrbx_part1.gnssId;
+			hgps->subFrames->svId   = _Parser->buf_packet.payload_rx_rxm_sfrbx_part1.svId;
 		}
-		if (Parser.rx_payload_index < sizeof(ubx_payload_rx_rxm_sfrbx_part1_t) + hgps->subFrames->numWord * sizeof(ubx_payload_rx_rxm_sfrbx_part2_t)) {
+		if (_Parser->rx_payload_index < sizeof(ubx_payload_rx_rxm_sfrbx_part1_t) + hgps->subFrames->numWord * sizeof(ubx_payload_rx_rxm_sfrbx_part2_t)) {
 			// Still room in satellite_info: fill Part 2 buffer
-			unsigned buf_index = (Parser.rx_payload_index - sizeof(ubx_payload_rx_rxm_sfrbx_part1_t)) % sizeof(ubx_payload_rx_rxm_sfrbx_part2_t);
-			Parser.buf_packet.raw[buf_index] = b;
+			unsigned buf_index = (_Parser->rx_payload_index - sizeof(ubx_payload_rx_rxm_sfrbx_part1_t)) % sizeof(ubx_payload_rx_rxm_sfrbx_part2_t);
+			_Parser->buf_packet.raw[buf_index] = b;
 			if (buf_index == sizeof(ubx_payload_rx_rxm_sfrbx_part2_t) - 1) {
 				// Part 2 complete: decode Part 2 buffer
-				unsigned meas_index 									= (Parser.rx_payload_index - sizeof(ubx_payload_rx_rxm_sfrbx_part1_t)) / sizeof(ubx_payload_rx_rxm_sfrbx_part2_t);
-				hgps->subFrames->dwrd[meas_index] = (uint32_t)(Parser.buf_packet.payload_rx_rxm_sfrbx_part2.dwrd);
+				unsigned meas_index 									= (_Parser->rx_payload_index - sizeof(ubx_payload_rx_rxm_sfrbx_part1_t)) / sizeof(ubx_payload_rx_rxm_sfrbx_part2_t);
+				hgps->subFrames->dwrd[meas_index] = (uint32_t)(_Parser->buf_packet.payload_rx_rxm_sfrbx_part2.dwrd);
 			}
 		}
 	}
 
-	if (++(Parser.rx_payload_index) >= Parser.rx_payload_length) {
+	if (++(_Parser->rx_payload_index) >= _Parser->rx_payload_length) {
 		ret = 1;	// payload received completely
 	}
 
@@ -906,14 +927,14 @@ static int  payload_rx_add_rxm_sfrbx(const uint8_t b)
  * @param  b: the byte received from the GNSS and added to the payload
  * @retval  -1 = error, 0 = ok, 1 = payload completed
  */
-static int  payload_rx_add(const uint8_t b)
+int  payload_rx_add(UBX_ParserHandler *_Parser, const uint8_t b)
 {
 	int ret = 0;
 
-	Parser.buf_packet.raw[Parser.rx_payload_index] = b;
-	Parser.rx_payload_index++;
+	_Parser->buf_packet.raw[_Parser->rx_payload_index] = b;
+	_Parser->rx_payload_index++;
 	//printf("%d >= %d\r\n", hgps->_rx_payload_index,  hgps->_rx_payload_length);
-	if ((Parser.rx_payload_index) >= Parser.rx_payload_length) {
+	if ((_Parser->rx_payload_index) >= _Parser->rx_payload_length) {
 		ret = 1;	// payload received completely
 	}
 
@@ -922,33 +943,33 @@ static int  payload_rx_add(const uint8_t b)
 
 //TODO: change the return val for UBX_StatusTypeDef
 //INTERRUPTION CONTEXT
-static int payload_rx_add_mon_ver(const uint8_t b)
+int payload_rx_add_mon_ver(UBX_ParserHandler *_Parser, const uint8_t b)
 {
 
 	int ret = 0;
-	GNSS_HandleTypeDef *hgps = Parser.hgps;
+	GNSS_HandleTypeDef *hgps = _Parser->hgps;
 
 
-	if (Parser.rx_payload_index < sizeof(ubx_payload_rx_mon_ver_part1_t)) {
+	if (_Parser->rx_payload_index < sizeof(ubx_payload_rx_mon_ver_part1_t)) {
 		// Fill Part 1 buffer
-		Parser.buf_packet.raw[Parser.rx_payload_index] = b;
+		_Parser->buf_packet.raw[_Parser->rx_payload_index] = b;
 	} else {
-		if (Parser.rx_payload_index == sizeof(ubx_payload_rx_mon_ver_part1_t)) {
+		if (_Parser->rx_payload_index == sizeof(ubx_payload_rx_mon_ver_part1_t)) {
 			// Part 1 complete: decode Part 1 buffer and calculate hash for SW&HW version strings
-			hgps->ubx_version = fnv1_32_str(Parser.buf_packet.payload_rx_mon_ver_part1.swVersion, FNV1_32_INIT);
-			hgps->ubx_version = fnv1_32_str(Parser.buf_packet.payload_rx_mon_ver_part1.hwVersion, hgps->ubx_version);
+			hgps->ubx_version = fnv1_32_str(_Parser->buf_packet.payload_rx_mon_ver_part1.swVersion, FNV1_32_INIT);
+			hgps->ubx_version = fnv1_32_str(_Parser->buf_packet.payload_rx_mon_ver_part1.hwVersion, hgps->ubx_version);
 
 		}
 		// fill Part 2 buffer
-		unsigned buf_index = (Parser.rx_payload_index - sizeof(ubx_payload_rx_mon_ver_part1_t)) % sizeof(ubx_payload_rx_mon_ver_part2_t);
-		Parser.buf_packet.raw[buf_index] = b;
+		unsigned buf_index = (_Parser->rx_payload_index - sizeof(ubx_payload_rx_mon_ver_part1_t)) % sizeof(ubx_payload_rx_mon_ver_part2_t);
+		_Parser->buf_packet.raw[buf_index] = b;
 		if (buf_index == sizeof(ubx_payload_rx_mon_ver_part2_t) - 1) {
 			// Part 2 complete: decode Part 2 buffer
-			//			UBX_WARN("VER ext \" %30s\"", Parser.buf_packet.payload_rx_mon_ver_part2.extension);
+			//			UBX_WARN("VER ext \" %30s\"", _Parser->buf_packet.payload_rx_mon_ver_part2.extension);
 		}
 	}
 
-	if (++(Parser.rx_payload_index) >= Parser.rx_payload_length) {
+	if (++(_Parser->rx_payload_index) >= _Parser->rx_payload_length) {
 		ret = 1;	// payload received completely
 	}
 
@@ -962,67 +983,67 @@ static int payload_rx_add_mon_ver(const uint8_t b)
  *					GPS time is received. INTERRUPTION CONTEXT
  * @retval   0 = no message handled, 1 = message handled, 2 = sat info message handled or raw meas
  */
-static int payload_rx_done(void)
+int payload_rx_done(UBX_ParserHandler *_Parser)
 {
 	int ret = 0;
-	GNSS_HandleTypeDef *hgps = Parser.hgps;
+	GNSS_HandleTypeDef *hgps = _Parser->hgps;
 
 	// return if no message handled
-	if (Parser.rx_state != UBX_RXMSG_HANDLE) {
+	if (_Parser->rx_state != UBX_RXMSG_HANDLE) {
 		return ret;
 	}
 
 	// handle message
-	switch (Parser.rx_msg) {
+	switch (_Parser->rx_msg) {
 
 	case UBX_MSG_NAV_PVT:
 		//printf("Rx NAV-PVT\n");
 	  HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
 
-		hgps->gps_position->fix_type		= Parser.buf_packet.payload_rx_nav_pvt.fixType;
-		hgps->gps_position->satellites_used	= Parser.buf_packet.payload_rx_nav_pvt.numSV;
+		hgps->gps_position->fix_type		= _Parser->buf_packet.payload_rx_nav_pvt.fixType;
+		hgps->gps_position->satellites_used	= _Parser->buf_packet.payload_rx_nav_pvt.numSV;
 
-		hgps->gps_position->lat		= Parser.buf_packet.payload_rx_nav_pvt.lat;
-		hgps->gps_position->lon		= Parser.buf_packet.payload_rx_nav_pvt.lon;
-		hgps->gps_position->alt		= Parser.buf_packet.payload_rx_nav_pvt.hMSL;
+		hgps->gps_position->lat		= _Parser->buf_packet.payload_rx_nav_pvt.lat;
+		hgps->gps_position->lon		= _Parser->buf_packet.payload_rx_nav_pvt.lon;
+		hgps->gps_position->alt		= _Parser->buf_packet.payload_rx_nav_pvt.hMSL;
 
-		hgps->gps_position->eph		= (float)Parser.buf_packet.payload_rx_nav_pvt.hAcc * 1e-3f;
-		hgps->gps_position->epv		= (float)Parser.buf_packet.payload_rx_nav_pvt.vAcc * 1e-3f;
-		hgps->gps_position->dop     = (float)Parser.buf_packet.payload_rx_nav_pvt.pDOP *1e-3f;
-		hgps->gps_position->s_variance_m_s	= (float)Parser.buf_packet.payload_rx_nav_pvt.sAcc * 1e-3f;
+		hgps->gps_position->eph		= (float)_Parser->buf_packet.payload_rx_nav_pvt.hAcc * 1e-3f;
+		hgps->gps_position->epv		= (float)_Parser->buf_packet.payload_rx_nav_pvt.vAcc * 1e-3f;
+		hgps->gps_position->dop     = (float)_Parser->buf_packet.payload_rx_nav_pvt.pDOP *1e-3f;
+		hgps->gps_position->s_variance_m_s	= (float)_Parser->buf_packet.payload_rx_nav_pvt.sAcc * 1e-3f;
 
-		hgps->gps_position->vel_m_s		= (float)Parser.buf_packet.payload_rx_nav_pvt.gSpeed * 1e-3f;
+		hgps->gps_position->vel_m_s		= (float)_Parser->buf_packet.payload_rx_nav_pvt.gSpeed * 1e-3f;
 
-		hgps->gps_position->vel_n_m_s	= (float)Parser.buf_packet.payload_rx_nav_pvt.velN * 1e-3f;
-		hgps->gps_position->vel_e_m_s	= (float)Parser.buf_packet.payload_rx_nav_pvt.velE * 1e-3f;
-		hgps->gps_position->vel_d_m_s	= (float)Parser.buf_packet.payload_rx_nav_pvt.velD * 1e-3f;
+		hgps->gps_position->vel_n_m_s	= (float)_Parser->buf_packet.payload_rx_nav_pvt.velN * 1e-3f;
+		hgps->gps_position->vel_e_m_s	= (float)_Parser->buf_packet.payload_rx_nav_pvt.velE * 1e-3f;
+		hgps->gps_position->vel_d_m_s	= (float)_Parser->buf_packet.payload_rx_nav_pvt.velD * 1e-3f;
 		hgps->gps_position->vel_ned_valid	= true;
 
-		hgps->gps_position->cog_rad		= (float)Parser.buf_packet.payload_rx_nav_pvt.headMot * M_DEG_TO_RAD_F * 1e-5f;
-		hgps->gps_position->c_variance_rad	= (float)Parser.buf_packet.payload_rx_nav_pvt.headAcc * M_DEG_TO_RAD_F * 1e-5f;
+		hgps->gps_position->cog_rad		= (float)_Parser->buf_packet.payload_rx_nav_pvt.headMot * M_DEG_TO_RAD_F * 1e-5f;
+		hgps->gps_position->c_variance_rad	= (float)_Parser->buf_packet.payload_rx_nav_pvt.headAcc * M_DEG_TO_RAD_F * 1e-5f;
 
 		{
-			//			if(Parser.rtc_configured ==false && Parser.hgps->gps_position->fix_type > NO_FIX)
+			//			if(_Parser->rtc_configured ==false && _Parser->hgps->gps_position->fix_type > NO_FIX)
 			//			{
 			//				RTC_TimeTypeDef sTime;
 			//				RTC_DateTypeDef sDate;
-			//				sTime.Hours = Parser.buf_packet.payload_rx_nav_pvt.hour;
-			//				sTime.Minutes = Parser.buf_packet.payload_rx_nav_pvt.min;
-			//				sTime.Seconds = Parser.buf_packet.payload_rx_nav_pvt.sec;
+			//				sTime.Hours = _Parser->buf_packet.payload_rx_nav_pvt.hour;
+			//				sTime.Minutes = _Parser->buf_packet.payload_rx_nav_pvt.min;
+			//				sTime.Seconds = _Parser->buf_packet.payload_rx_nav_pvt.sec;
 			//				sTime.SubSeconds = 0;
 			//				sTime.TimeFormat = RTC_HOURFORMAT12_AM;
 			//				sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
 			//				sTime.StoreOperation = RTC_STOREOPERATION_RESET;
-			//				HAL_RTC_SetTime(Parser.hgps->hrtc, &sTime, RTC_FORMAT_BCD);
+			//				HAL_RTC_SetTime(_Parser->hgps->hrtc, &sTime, RTC_FORMAT_BCD);
 			//
 			////				sDate.WeekDay = RTC_WEEKDAY_MONDAY;
-			//				sDate.Month = Parser.buf_packet.payload_rx_nav_pvt.month ;
-			//				sDate.Date = Parser.buf_packet.payload_rx_nav_pvt.day;
-			//				sDate.Year = Parser.buf_packet.payload_rx_nav_pvt.year;
-			//				HAL_RTC_SetDate(Parser.hgps->hrtc, &sDate, RTC_FORMAT_BCD);
+			//				sDate.Month = _Parser->buf_packet.payload_rx_nav_pvt.month ;
+			//				sDate.Date = _Parser->buf_packet.payload_rx_nav_pvt.day;
+			//				sDate.Year = _Parser->buf_packet.payload_rx_nav_pvt.year;
+			//				HAL_RTC_SetDate(_Parser->hgps->hrtc, &sDate, RTC_FORMAT_BCD);
 			//
-			//				HAL_RTCEx_BKUPWrite(Parser.hgps->hrtc,RTC_BKP_DR0,0x32F2);
-			//				Parser.rtc_configured =true;
+			//				HAL_RTCEx_BKUPWrite(_Parser->hgps->hrtc,RTC_BKP_DR0,0x32F2);
+			//				_Parser->rtc_configured =true;
 			//			}
 
 		}
@@ -1044,11 +1065,11 @@ static int payload_rx_done(void)
 	case UBX_MSG_NAV_POSLLH:
 		//printf("Rx NAV-POSLLH\n");
 
-		hgps->gps_position->lat	= Parser.buf_packet.payload_rx_nav_posllh.lat;
-		hgps->gps_position->lon	= Parser.buf_packet.payload_rx_nav_posllh.lon;
-		hgps->gps_position->alt	= Parser.buf_packet.payload_rx_nav_posllh.hMSL;
-		hgps->gps_position->eph	= (float)(Parser.buf_packet.payload_rx_nav_posllh.hAcc * 1e-3f); // from mm to m
-		hgps->gps_position->epv	= (float)(Parser.buf_packet.payload_rx_nav_posllh.vAcc * 1e-3f); // from mm to m
+		hgps->gps_position->lat	= _Parser->buf_packet.payload_rx_nav_posllh.lat;
+		hgps->gps_position->lon	= _Parser->buf_packet.payload_rx_nav_posllh.lon;
+		hgps->gps_position->alt	= _Parser->buf_packet.payload_rx_nav_posllh.hMSL;
+		hgps->gps_position->eph	= (float)(_Parser->buf_packet.payload_rx_nav_posllh.hAcc * 1e-3f); // from mm to m
+		hgps->gps_position->epv	= (float)(_Parser->buf_packet.payload_rx_nav_posllh.vAcc * 1e-3f); // from mm to m
 
 		hgps->gps_position->timestamp_position = HAL_GetTick();//hrt_absolute_time();
 		//		hgps->rec_frame = NAV_POSLLH;
@@ -1066,9 +1087,9 @@ static int payload_rx_done(void)
 	case UBX_MSG_NAV_SOL:
 		//printf("Rx NAV-SOL\r\n");
 
-		hgps->gps_position->fix_type		= Parser.buf_packet.payload_rx_nav_sol.gpsFix;
-		hgps->gps_position->s_variance_m_s	= (float)(Parser.buf_packet.payload_rx_nav_sol.sAcc * 1e-2f);	// from cm to m
-		hgps->gps_position->satellites_used	= Parser.buf_packet.payload_rx_nav_sol.numSV;
+		hgps->gps_position->fix_type		= _Parser->buf_packet.payload_rx_nav_sol.gpsFix;
+		hgps->gps_position->s_variance_m_s	= (float)(_Parser->buf_packet.payload_rx_nav_sol.sAcc * 1e-2f);	// from cm to m
+		hgps->gps_position->satellites_used	= _Parser->buf_packet.payload_rx_nav_sol.numSV;
 
 		hgps->gps_position->timestamp_variance = HAL_GetTick();//hrt_absolute_time();
 		//		hgps->rec_frame = NAV_SOL;
@@ -1084,27 +1105,27 @@ static int payload_rx_done(void)
 		//printf("Rx NAV-TIMEUTC\n");
 
 	{
-		//			if(Parser.rtc_configured ==false && Parser.hgps->gps_position->fix_type > NO_FIX)
+		//			if(_Parser->rtc_configured ==false && _Parser->hgps->gps_position->fix_type > NO_FIX)
 		//			{
 		//				RTC_TimeTypeDef sTime;
 		//				RTC_DateTypeDef sDate;
-		//				sTime.Hours = Parser.buf_packet.payload_rx_nav_pvt.hour;
-		//				sTime.Minutes = Parser.buf_packet.payload_rx_nav_pvt.min;
-		//				sTime.Seconds = Parser.buf_packet.payload_rx_nav_pvt.sec;
+		//				sTime.Hours = _Parser->buf_packet.payload_rx_nav_pvt.hour;
+		//				sTime.Minutes = _Parser->buf_packet.payload_rx_nav_pvt.min;
+		//				sTime.Seconds = _Parser->buf_packet.payload_rx_nav_pvt.sec;
 		//				sTime.SubSeconds = 0;
 		//				sTime.TimeFormat = RTC_HOURFORMAT12_AM;
 		//				sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
 		//				sTime.StoreOperation = RTC_STOREOPERATION_RESET;
-		//				HAL_RTC_SetTime(Parser.hgps->hrtc, &sTime, RTC_FORMAT_BIN);
+		//				HAL_RTC_SetTime(_Parser->hgps->hrtc, &sTime, RTC_FORMAT_BIN);
 		//
 		////				sDate.WeekDay = RTC_WEEKDAY_MONDAY;
-		//				sDate.Month = Parser.buf_packet.payload_rx_nav_pvt.month ;
-		//				sDate.Date = Parser.buf_packet.payload_rx_nav_pvt.day;
-		//				sDate.Year = Parser.buf_packet.payload_rx_nav_pvt.year;
-		//				HAL_RTC_SetDate(Parser.hgps->hrtc, &sDate, RTC_FORMAT_BIN);
+		//				sDate.Month = _Parser->buf_packet.payload_rx_nav_pvt.month ;
+		//				sDate.Date = _Parser->buf_packet.payload_rx_nav_pvt.day;
+		//				sDate.Year = _Parser->buf_packet.payload_rx_nav_pvt.year;
+		//				HAL_RTC_SetDate(_Parser->hgps->hrtc, &sDate, RTC_FORMAT_BIN);
 		//
-		//				HAL_RTCEx_BKUPWrite(Parser.hgps->hrtc,RTC_BKP_DR0,0x32F2);
-		//				Parser.rtc_configured =true;
+		//				HAL_RTCEx_BKUPWrite(_Parser->hgps->hrtc,RTC_BKP_DR0,0x32F2);
+		//				_Parser->rtc_configured =true;
 		////				log_message("utc time configured, has fix");
 		//			}
 		//			log_time();
@@ -1141,12 +1162,12 @@ static int payload_rx_done(void)
 	case UBX_MSG_NAV_VELNED:
 		//printf("Rx NAV-VELNED\n");
 
-		hgps->gps_position->vel_m_s		= (float)(Parser.buf_packet.payload_rx_nav_velned.speed * 1e-2f);
-		hgps->gps_position->vel_n_m_s	= (float)(Parser.buf_packet.payload_rx_nav_velned.velN * 1e-2f); /* NED NORTH velocity */
-		hgps->gps_position->vel_e_m_s	= (float)(Parser.buf_packet.payload_rx_nav_velned.velE * 1e-2f); /* NED EAST velocity */
-		hgps->gps_position->vel_d_m_s	= (float)(Parser.buf_packet.payload_rx_nav_velned.velD * 1e-2f); /* NED DOWN velocity */
-		hgps->gps_position->cog_rad		= (float)(Parser.buf_packet.payload_rx_nav_velned.heading * M_DEG_TO_RAD_F * 1e-5f);
-		hgps->gps_position->c_variance_rad	= (float)(Parser.buf_packet.payload_rx_nav_velned.cAcc * M_DEG_TO_RAD_F * 1e-5f);
+		hgps->gps_position->vel_m_s		= (float)(_Parser->buf_packet.payload_rx_nav_velned.speed * 1e-2f);
+		hgps->gps_position->vel_n_m_s	= (float)(_Parser->buf_packet.payload_rx_nav_velned.velN * 1e-2f); /* NED NORTH velocity */
+		hgps->gps_position->vel_e_m_s	= (float)(_Parser->buf_packet.payload_rx_nav_velned.velE * 1e-2f); /* NED EAST velocity */
+		hgps->gps_position->vel_d_m_s	= (float)(_Parser->buf_packet.payload_rx_nav_velned.velD * 1e-2f); /* NED DOWN velocity */
+		hgps->gps_position->cog_rad		= (float)(_Parser->buf_packet.payload_rx_nav_velned.heading * M_DEG_TO_RAD_F * 1e-5f);
+		hgps->gps_position->c_variance_rad	= (float)(_Parser->buf_packet.payload_rx_nav_velned.cAcc * M_DEG_TO_RAD_F * 1e-5f);
 		hgps->gps_position->vel_ned_valid	= true;
 
 		//		hgps->gps_position->timestamp_velocity = HAL_GetTick();//hrt_absolute_time();
@@ -1175,18 +1196,18 @@ static int payload_rx_done(void)
 	case UBX_MSG_MON_HW:
 		//printf("Rx MON-HW\n");
 
-		switch (Parser.rx_payload_length) {
+		switch (_Parser->rx_payload_length) {
 
 		case sizeof(ubx_payload_rx_mon_hw_ubx6_t):	/* u-blox 6 msg format */
-							hgps->gps_position->noise_per_ms		= Parser.buf_packet.payload_rx_mon_hw_ubx6.noisePerMS;
-		hgps->gps_position->jamming_indicator	= Parser.buf_packet.payload_rx_mon_hw_ubx6.jamInd;
+							hgps->gps_position->noise_per_ms		= _Parser->buf_packet.payload_rx_mon_hw_ubx6.noisePerMS;
+		hgps->gps_position->jamming_indicator	= _Parser->buf_packet.payload_rx_mon_hw_ubx6.jamInd;
 
 		ret = 1;
 		break;
 
 		case sizeof(ubx_payload_rx_mon_hw_ubx7_t):	/* u-blox 7+ msg format */
-							hgps->gps_position->noise_per_ms		= Parser.buf_packet.payload_rx_mon_hw_ubx7.noisePerMS;
-		hgps->gps_position->jamming_indicator	= Parser.buf_packet.payload_rx_mon_hw_ubx7.jamInd;
+							hgps->gps_position->noise_per_ms		= _Parser->buf_packet.payload_rx_mon_hw_ubx7.noisePerMS;
+		hgps->gps_position->jamming_indicator	= _Parser->buf_packet.payload_rx_mon_hw_ubx7.jamInd;
 
 		ret = 1;
 		break;
@@ -1200,8 +1221,8 @@ static int payload_rx_done(void)
 		case UBX_MSG_ACK_ACK:
 			//printf("Rx ACK-ACK\n");
 
-			if ((Parser.ack_state == UBX_ACK_WAITING) && (Parser.buf_packet.payload_rx_ack_ack.msgByte == Parser.ack_waiting_msg)) {
-				Parser.ack_state = UBX_ACK_GOT_ACK;
+			if ((_Parser->ack_state == UBX_ACK_WAITING) && (_Parser->buf_packet.payload_rx_ack_ack.msgByte == _Parser->ack_waiting_msg)) {
+				_Parser->ack_state = UBX_ACK_GOT_ACK;
 			}
 
 			ret = 1;
@@ -1210,8 +1231,8 @@ static int payload_rx_done(void)
 		case UBX_MSG_ACK_NAK:
 			//printf("Rx ACK-NAK\n");
 
-			if ((Parser.ack_state == UBX_ACK_WAITING) && (Parser.buf_packet.payload_rx_ack_ack.msgByte == Parser.ack_waiting_msg)) {
-				Parser.ack_state = UBX_ACK_GOT_NAK;
+			if ((_Parser->ack_state == UBX_ACK_WAITING) && (_Parser->buf_packet.payload_rx_ack_ack.msgByte == _Parser->ack_waiting_msg)) {
+				_Parser->ack_state = UBX_ACK_GOT_NAK;
 			}
 			ret = 1;
 			break;
@@ -1231,7 +1252,7 @@ static int payload_rx_done(void)
  *                  rate (set by CFG RATE), i.e. 1 means 5Hz ( 0 will stop the streaming)
  * @retval None
  */
-static void configure_message_rate( const uint16_t msg, const uint8_t rate)
+void configure_message_rate(UBX_ParserHandler *_Parser, const uint16_t msg, const uint8_t rate)
 {
 	ubx_payload_tx_cfg_msg_t cfg_msg;	// don't use _buf (allow interleaved operation)
 
@@ -1239,7 +1260,7 @@ static void configure_message_rate( const uint16_t msg, const uint8_t rate)
 	cfg_msg.rate	= rate;
 
 	//	send_message(hgps, UBX_MSG_CFG_MSG, (uint8_t *)&cfg_msg, sizeof(cfg_msg));
-	GNSS_send_message(UBX_MSG_CFG_MSG, (uint8_t *)&cfg_msg, TX_CFG_MSG_LEN);
+	GNSS_send_message(_Parser, UBX_MSG_CFG_MSG, (uint8_t *)&cfg_msg, TX_CFG_MSG_LEN);
 }
 
 
@@ -1250,7 +1271,7 @@ static void configure_message_rate( const uint16_t msg, const uint8_t rate)
  * @param  checksum : struct that will containe the checksum result
  * @retval None
  */
-static void calc_checksum(const uint8_t *buffer, const uint16_t length, ubx_checksum_t *checksum)
+void calc_checksum(const uint8_t *buffer, const uint16_t length, ubx_checksum_t *checksum)
 {
 	uint16_t i;
 	for (i = 0; i < length; i++) {
@@ -1265,10 +1286,10 @@ static void calc_checksum(const uint8_t *buffer, const uint16_t length, ubx_chec
  * @param  b    : payload byte received
  * @retval None
  */
-static void add_byte_to_checksum(const uint8_t b)
+void add_byte_to_checksum(UBX_ParserHandler *_Parser, const uint8_t b)
 {
-	Parser.rx_ck_a = Parser.rx_ck_a + b;
-	Parser.rx_ck_b = Parser.rx_ck_b + Parser.rx_ck_a;
+	_Parser->rx_ck_a = _Parser->rx_ck_a + b;
+	_Parser->rx_ck_b = _Parser->rx_ck_b + _Parser->rx_ck_a;
 }
 
 
@@ -1277,54 +1298,53 @@ static void add_byte_to_checksum(const uint8_t b)
  * @param  msg  : message to wait for ( is the same as the message send to configure)
  * @retval None
  */
-static UBX_StatusTypeDef wait_for_ack(const uint16_t msg)
+UBX_StatusTypeDef wait_for_ack(UBX_ParserHandler *_Parser, const uint16_t msg)
 {
-	int i;
-	UART_HandleTypeDef *huart = Parser.hgps->huart;
 
-	Parser.ack_state = UBX_ACK_WAITING;
-	Parser.ack_waiting_msg = msg;	// memorize sent msg class&ID for ACK check
-	semGpsGate =0;
+	UART_HandleTypeDef *huart = _Parser->hgps->huart;
+
+	_Parser->ack_state = UBX_ACK_WAITING;
+	_Parser->ack_waiting_msg = msg;	// memorize sent msg class&ID for ACK check
 
 	uint8_t ack[1];
 
 	int tickstart =HAL_GetTick();
-	while((Parser.ack_state == UBX_ACK_WAITING) && ((HAL_GetTick() - tickstart) < WAIT_ACK_TIME))
+	while((_Parser->ack_state == UBX_ACK_WAITING) && ((HAL_GetTick() - tickstart) < WAIT_ACK_TIME))
 	{
 		HAL_UART_Receive(huart, ack, 1, 200);
-		parse_char(ack[0]);
+		parse_char(_Parser, ack[0]);
 
 	}
-	if(((HAL_GetTick() - tickstart) > WAIT_ACK_TIME) && semGpsGate ==0)
+	if((HAL_GetTick() - tickstart) > WAIT_ACK_TIME)
 	{
 		log_message("error wait ack no gps reception");
 	}
-	UBX_StatusTypeDef ret =  (Parser.ack_state == UBX_ACK_GOT_ACK)? UBX_ACK_OK : UBX_CFG_NO_RES_ACK;
-	Parser.ack_state = UBX_ACK_IDLE;
+	UBX_StatusTypeDef ret =  (_Parser->ack_state == UBX_ACK_GOT_ACK)? UBX_ACK_OK : UBX_CFG_NO_RES_ACK;
+	_Parser->ack_state = UBX_ACK_IDLE;
 	return ret;
 }
 
-static UBX_StatusTypeDef wait_for_ack2(const uint16_t msg)
+UBX_StatusTypeDef wait_for_ack2(UBX_ParserHandler *_Parser, const uint16_t msg)
 {
 
-	Parser.ack_state = UBX_ACK_WAITING;
-	Parser.ack_waiting_msg = msg;	// memorize sent msg class&ID for ACK check
-	semGpsGate =0;
+	_Parser->ack_state = UBX_ACK_WAITING;
+	_Parser->ack_waiting_msg = msg;	// memorize sent msg class&ID for ACK check
+
 	int tickstart =HAL_GetTick();
-	while((Parser.ack_state == UBX_ACK_WAITING) && ((HAL_GetTick() - tickstart) < WAIT_ACK_TIME))
+	while((_Parser->ack_state == UBX_ACK_WAITING) && ((HAL_GetTick() - tickstart) < WAIT_ACK_TIME))
 	{
 	}
-	if(((HAL_GetTick() - tickstart) > WAIT_ACK_TIME) && semGpsGate ==0)
+	if((HAL_GetTick() - tickstart) > WAIT_ACK_TIME)
 	{
 		log_message("error wait ack no gps reception");
 	}
-	UBX_StatusTypeDef ret =  (Parser.ack_state == UBX_ACK_GOT_ACK)? UBX_ACK_OK : UBX_CFG_NO_RES_ACK;
-	Parser.ack_state = UBX_ACK_IDLE;
+	UBX_StatusTypeDef ret =  (_Parser->ack_state == UBX_ACK_GOT_ACK)? UBX_ACK_OK : UBX_CFG_NO_RES_ACK;
+	_Parser->ack_state = UBX_ACK_IDLE;
 	return ret;
 }
 
 
-static uint32_t fnv1_32_str(uint8_t *str, uint32_t hval)
+uint32_t fnv1_32_str(uint8_t *str, uint32_t hval)
 {
 
 

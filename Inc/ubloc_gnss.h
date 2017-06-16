@@ -743,11 +743,11 @@ typedef struct{
 
 
 //initialise the GPS handler
-void 							GNSS_Init(GNSS_HandleTypeDef *hgps);
+void GNSS_Init(UBX_ParserHandler *_Parser, UART_HandleTypeDef *_huart);
 UBX_StatusTypeDef GNSS_Start(void);
-UBX_StatusTypeDef GNSS_configure(void);//configure the GPS
+UBX_StatusTypeDef GNSS_configure(UBX_ParserHandler* _Parser);//configure the GPS
 void 			  GNSS_log(GNSS_HandleTypeDef *hgps);
-int  parse_char(const uint8_t b);
+int  parse_char(UBX_ParserHandler* _Parser, const uint8_t b);
 
 
 #endif //UBX_H_
