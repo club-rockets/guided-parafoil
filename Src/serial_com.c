@@ -149,7 +149,7 @@ void serial_menu()
 
       res = HAL_CAN_Transmit(&hcan2, 5);
 
-      sprintf(USB_CDC_TX, "CAN TEST: %i\n\r", res);
+      sprintf(USB_CDC_TX, "CAN TEST: %i\n\r", Get_RocketState());
       CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
       USB_CDC_RX[0] = 0;

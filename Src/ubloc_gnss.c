@@ -417,7 +417,7 @@ void GNSS_log(GNSS_HandleTypeDef *hgps)
 				hgps->gps_position->lon, hgps->gps_position->alt);
 		SD_Save_Data(bufPOS);
 		hgps->got_posllh = false;
-		//HAL_GPIO_WritePin(GPIOD, LED4_Pin, GPIO_PIN_SET);
+
 	}
 	if(hgps->got_sol)
 	{
@@ -426,7 +426,7 @@ void GNSS_log(GNSS_HandleTypeDef *hgps)
 				 hgps->gps_position->satellites_used);
 		SD_Save_Data(bufSOL);
 		hgps->got_sol = false;
-		//HAL_GPIO_WritePin(GPIOD, LED4_Pin, GPIO_PIN_SET);
+
 	}
 
 
@@ -498,7 +498,6 @@ int  parse_char(const uint8_t b)
 		if (b == UBX_SYNC1) {	// Sync1 found --> expecting Sync2
 			//printf("A\r\n");
 //		  Send_serial_message("a");
-		  HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
 			Parser.decode_state = UBX_DECODE_SYNC2;
 		}
 		break;

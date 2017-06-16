@@ -75,8 +75,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 //Buffer for GPS Ublox data frame
-uint8_t usart2_rx[GPS_FRAME_LENGTH] = {0};
-uint8_t usart6_rx[GPS_FRAME_LENGTH] = {0};
+//uint8_t usart2_rx[GPS_FRAME_LENGTH];
+uint8_t usart6_rx[GPS_FRAME_LENGTH];
 
 uint8_t GPS1_frame[GPS_FRAME_LENGTH] = {0};//USART2 Buffer
 uint8_t GPS2_frame[GPS_FRAME_LENGTH] = {0};//USART6 Buffer
@@ -154,7 +154,7 @@ int main(void)
   hcan2.pTxMsg = &CanTx_msg;
   hcan2.pRxMsg = &CanRx_msg;
 
-  CAN_FilterStruct.FilterNumber = 0;                    //Specifies the filter which will be initialized.
+  CAN_FilterStruct.FilterNumber = 14;                    //Specifies the filter which will be initialized.
   CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDMASK;  //Specifies the filter mode to be initialized.
                                                         //CAN_FILTERMODE_IDLIST : Identifier list mode
   CAN_FilterStruct.FilterScale = CAN_FILTERSCALE_32BIT;
@@ -162,8 +162,10 @@ int main(void)
   CAN_FilterStruct.FilterIdLow = 0;
   CAN_FilterStruct.FilterMaskIdHigh = 0;
   CAN_FilterStruct.FilterMaskIdLow = 0;
-  CAN_FilterStruct.FilterFIFOAssignment = 0;
+  CAN_FilterStruct.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+  CAN_FilterStruct.FilterActivation = ENABLE; /* Enable this filter */
   CAN_FilterStruct.BankNumber = 14;
+
   HAL_CAN_ConfigFilter(&hcan2, &CAN_FilterStruct);
 
   hcan2.pTxMsg->StdId = 0x244;
@@ -171,16 +173,16 @@ int main(void)
   hcan2.pTxMsg->IDE = CAN_ID_STD;
   hcan2.pTxMsg->DLC = 1;
 
-  HAL_Delay(1000);
-
   //init main handlers and stuff
   SD_Save_Init();
   Motor_Init();
   GPS_Init();
   SGP_Control_Init();
 
+  HAL_Delay(1000);
+
   //start uart interrupt for GPS, cte lenght rx
-  HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
+  __HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
 
   //TIMER START
   HAL_TIM_Base_Start(&htim2);
@@ -190,8 +192,7 @@ int main(void)
 
   //CAN START
   HAL_GPIO_WritePin(CAN_STANDBY_GPIO_Port, CAN_STANDBY_Pin, GPIO_PIN_RESET);
-//  HAL_CAN_Receive_IT(&hcan2, CAN_FIFO0);
-//  __HAL_CAN_ENABLE_IT(&hcan2, CAN_IT_FMP0);
+  __HAL_CAN_ENABLE_IT(&hcan2, CAN_IT_FMP0);
 
 
   /* USER CODE END 2 */
@@ -200,29 +201,18 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1) {
 
-
-    serial_menu();
-
-
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
 
-    //HAL_CAN_Transmit(hcan2, 100);
+	serial_menu();
+
     //GPS1 Frame parse launcher
     if (GPS1_FrameRdy != 0)
     {
       GPS_Read_Data(GPS1_frame);
       GPS1_FrameRdy = 0;
-
     }
-    else
-    {
-      HAL_UART_Receive_IT(&huart2, usart2_rx, GPS_FRAME_LENGTH);
-    }
-
-    HAL_CAN_Receive_IT(&hcan2, CAN_FIFO0);
-    __HAL_CAN_ENABLE_IT(&hcan2, CAN_IT_FMP0);
 
   }
   /* USER CODE END 3 */
@@ -246,8 +236,7 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE
-                              |RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -357,6 +346,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
   if(huart->Instance == USART2){
     HAL_GPIO_TogglePin(GPIOD, LED1_Pin);
     memcpy(GPS1_frame, usart2_rx, sizeof(usart2_rx));
+    GPS1_FrameRdy = 1;
+
+    //HAL_UART_Receive_IT(&huart2, usart2_rx, 100);
   }
 }
 
@@ -367,8 +359,17 @@ void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan){
   {
 
     char message[8] = {0};
-    memcpy(message, hcan->pRxMsg->Data, 8);
+
+    memcpy(message, hcan->pRxMsg->Data, sizeof(Rocket_State_t));
+
+    if (hcan->pRxMsg->StdId == 0x11)
+    {
+    	Set_RocketState(message[0]);
+    }
+
     Send_serial_message(message);
+
+
 
     __HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
   }

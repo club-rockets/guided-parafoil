@@ -96,7 +96,7 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF9_CAN2;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -136,7 +136,18 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 } 
 
 /* USER CODE BEGIN 1 */
+HAL_StatusTypeDef CANBUS_LaunchDataRead(void)
+{
+  HAL_StatusTypeDef res = 0;
+  //hcan2.pTxMsg->Data = Data;
+  hcan2.pTxMsg->StdId = 0x001;
+  hcan2.pTxMsg->DLC = 0;
+  //0x0011 rocketstate
 
+  res = HAL_CAN_Transmit(&hcan2, 1);
+
+  return res;
+}
 /* USER CODE END 1 */
 
 /**

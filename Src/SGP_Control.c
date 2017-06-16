@@ -192,6 +192,7 @@ void SGP_Control_Loop() {
   }
 
   SD_Save_Data(Save_String);
+  CANBUS_LaunchDataRead();
 }
 
 uint8_t Launch_MotorTest()
@@ -221,7 +222,9 @@ void Set_RocketState(Rocket_State_t _Rocket_State)
   Rocket_State = _Rocket_State;
 }
 
-Rocket_State_t Get_RocketState()
+Rocket_State_t Get_RocketState(void)
 {
-  return Rocket_State;
+	return Rocket_State;
 }
+
+

@@ -67,7 +67,7 @@ extern void Error_Handler(void);
 void MX_CAN2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+HAL_StatusTypeDef CANBUS_LaunchDataRead(void);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

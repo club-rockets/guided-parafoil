@@ -37,6 +37,8 @@
 
 /* USER CODE BEGIN 0 */
 
+
+
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -242,7 +244,7 @@ void USART2_IRQHandler(void)
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
-
+  HAL_UART_Receive_IT(&huart2, usart2_rx, 100);
   /* USER CODE END USART2_IRQn 1 */
 }
 
@@ -270,7 +272,7 @@ void CAN2_RX0_IRQHandler(void)
   /* USER CODE END CAN2_RX0_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan2);
   /* USER CODE BEGIN CAN2_RX0_IRQn 1 */
-
+  HAL_CAN_Receive_IT(&hcan2, CAN_FIFO0);
   /* USER CODE END CAN2_RX0_IRQn 1 */
 }
 

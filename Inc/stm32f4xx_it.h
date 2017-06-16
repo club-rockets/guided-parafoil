@@ -68,6 +68,8 @@ void USART6_IRQHandler(void);
 }
 #endif
 
+uint8_t usart2_rx[GPS_FRAME_LENGTH];
+
 #endif /* __STM32F4xx_IT_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

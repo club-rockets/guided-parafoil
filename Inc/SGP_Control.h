@@ -68,6 +68,6 @@ void SGP_Control_Loop();
 uint8_t Launch_MotorTest();
 void Set_Destination(PolarGPS_Coordinate_t _PolarDest_Coordinate);
 void Set_RocketState(Rocket_State_t _Rocket_State);
-Rocket_State_t Get_RocketState();
+Rocket_State_t Get_RocketState(void);
 
 #endif /* SGP_CONTROL_H_ */
