@@ -55,6 +55,7 @@ void DebugMon_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
 void EXTI3_IRQHandler(void);
+void EXTI4_IRQHandler(void);
 void TIM3_IRQHandler(void);
 void TIM4_IRQHandler(void);
 void USART2_IRQHandler(void);
@@ -67,8 +68,6 @@ void USART6_IRQHandler(void);
 #ifdef __cplusplus
 }
 #endif
-
-uint8_t usart2_rx[GPS_FRAME_LENGTH];
 
 #endif /* __STM32F4xx_IT_H */
 

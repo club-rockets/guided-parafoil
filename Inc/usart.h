@@ -53,7 +53,7 @@
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+extern uint8_t usart2_rx[GPS_FRAME_LENGTH];
 /* USER CODE END Includes */
 
 extern USART_HandleTypeDef husart1;

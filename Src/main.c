@@ -207,13 +207,6 @@ int main(void)
 
 	serial_menu();
 
-    //GPS1 Frame parse launcher
-    if (GPS1_FrameRdy != 0)
-    {
-      GPS_Read_Data(GPS1_frame);
-      GPS1_FrameRdy = 0;
-    }
-
   }
   /* USER CODE END 3 */
 
@@ -314,6 +307,9 @@ static void MX_NVIC_Init(void)
   /* USART6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(USART6_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(USART6_IRQn);
+  /* EXTI4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -322,15 +318,33 @@ static void MX_NVIC_Init(void)
 //TIMER
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
+	static int modulo = 0;
+
   if (htim->Instance == TIM3)
   {
-    MotorCMD_Loop();
+    if (!(modulo % 20))
+    {
+    	SGP_Control_Loop();
+
+    }
+    if (!(modulo % 4))
+    {
+    	//GPS1 Frame parse launcher
+		if (GPS1_FrameRdy != 0)
+		{
+		  //GPS_Read_Data(GPS1_frame);
+		  GPS1_FrameRdy = 0;
+		}
+    }
+
+	  MotorCMD_Loop();
+	  modulo++;
   }
 
-  if (htim->Instance == TIM4)
-  {
-    SGP_Control_Loop();
-  }
+//  if (htim->Instance == TIM4)
+//  {
+//    SGP_Control_Loop();
+//  }
 
   if (htim->Instance == TIM6)
   {

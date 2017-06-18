@@ -488,6 +488,10 @@ static void UBX_Parser_Init(void)
  */
 int  parse_char(const uint8_t b)
 {
+	char *buffer = {0};
+	sprintf(buffer, "Char received: %c\n\r", b);
+	Send_serial_message(buffer);
+
 	int ret = 0;
 	//ubx_decode_state_t decode_state = hgps->_decode_state;
 	switch (Parser.decode_state) 

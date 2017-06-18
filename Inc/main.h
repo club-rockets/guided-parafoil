@@ -87,8 +87,6 @@
 #define MTi_MISO_GPIO_Port GPIOA
 #define MTi_MOSI_Pin GPIO_PIN_7
 #define MTi_MOSI_GPIO_Port GPIOA
-#define MTi_DATA_READY_Pin GPIO_PIN_4
-#define MTi_DATA_READY_GPIO_Port GPIOC
 #define MTi_SYNC_IN_Pin GPIO_PIN_5
 #define MTi_SYNC_IN_GPIO_Port GPIOC
 #define NPWM_LEFT_Pin GPIO_PIN_0

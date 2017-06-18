@@ -48,7 +48,7 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN 0 */
-
+uint8_t usart2_rx[GPS_FRAME_LENGTH];
 /* USER CODE END 0 */
 
 USART_HandleTypeDef husart1;
