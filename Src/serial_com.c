@@ -117,7 +117,33 @@ void serial_menu() {
 
 			if (GPSData != NULL) {
 				sprintf(USB_CDC_TX,
-						"\n\rGPS DATA:\n\rGPS Number: %lu\n\rFix type: %lu\n\rLatitude: %f\n\rLongitude: %f\n\rX: %f\n\rY: %f\n\rNb Satellites: %lu\n\r",
+						"\n\rGPS DATA:\n\rGPS Number: %i\n\rFix type: %i\n\rLatitude: %f\n\rLongitude: %f\n\rX: %f\n\rY: %f\n\rNb Satellites: %lu\n\r",
+						GPSData->GPS_Number, GPSData->fix_type,
+						GPSData->PolarCoordinate.latitude,
+						GPSData->PolarCoordinate.longitude,
+						GPSData->CartesianCoordinate.X,
+						GPSData->CartesianCoordinate.Y, GPSData->N_satellites);
+			}
+			else
+			{
+				sprintf(USB_CDC_TX,
+						"\n\rGPS DATA: no fix\n\r");
+			}
+
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+
+			USB_CDC_RX[0] = 0;
+		}
+
+	if (USB_CDC_RX[0] == '1') {
+
+			GPS_Data_t *GPSData;
+
+			GPSData = GPS_GetSpecificData(1);
+
+			if (GPSData != NULL) {
+				sprintf(USB_CDC_TX,
+						"\n\rGPS DATA:\n\rGPS Number: %i\n\rFix type: %i\n\rLatitude: %f\n\rLongitude: %f\n\rX: %f\n\rY: %f\n\rNb Satellites: %lu\n\r",
 						GPSData->GPS_Number, GPSData->fix_type,
 						GPSData->PolarCoordinate.latitude,
 						GPSData->PolarCoordinate.longitude,

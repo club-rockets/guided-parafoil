@@ -52,7 +52,6 @@
 #include "stm32f4xx_it.h"
 
 /* USER CODE BEGIN Includes */
-#include "ubloc_gnss.h"
 #include "usart.h"
 #include "SD_save.h"
 
@@ -68,12 +67,12 @@
 //#define LON_DEGREEVALUE 93463.46;
 
 //Las cruces latitude = 32.32 degrees
-//#define LAT_DEGREEVALUE 110892.40;
-//#define LON_DEGREEVALUE 94163.45;
+#define LAT_DEGREEVALUE 110892.40;
+#define LON_DEGREEVALUE 94163.45;
 
 //Las cruces latitude = 45.5087 degrees
-#define LAT_DEGREEVALUE 111141.69;
-#define LON_DEGREEVALUE 78146.00;
+//#define LAT_DEGREEVALUE 111141.69;
+//#define LON_DEGREEVALUE 78146.00;
 
 /******************************************************************************/
 /*                              Type  Prototype                               */
@@ -106,6 +105,7 @@ typedef struct GPS_Data_s {
 void GPS_Init();
 void GPS_Read_Data();
 GPS_Data_t* GPS_GetData();
+GPS_Data_t* GPS_GetSpecificData(uint8_t _GPS_Number);
 void Set_GPSDestination(PolarCoordinate_t _PolarDest_Coordinate);
 
 #endif /* GPS_H_ */

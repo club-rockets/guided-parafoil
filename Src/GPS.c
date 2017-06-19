@@ -1,22 +1,6 @@
 #include "GPS.h"
 
-GNSS_HandleTypeDef hgps;
-
-/* Decoder state */
-//typedef enum {
-//	UBX_DECODE_SYNC1 = 0,
-//	UBX_DECODE_SYNC2,
-//	UBX_DECODE_CLASS,
-//	UBX_DECODE_ID,
-//	UBX_DECODE_LENGTH1,
-//	UBX_DECODE_LENGTH2,
-//	UBX_DECODE_PAYLOAD,
-//	UBX_DECODE_CHKSUM1,
-//	UBX_DECODE_CHKSUM2
-//} ubx_decode_state_t;
-
 typedef struct UBX_Parser_s {
-	ubx_decode_state_t parser_state;
 	uint8_t GPS_frame[GPS_FRAME_LENGTH]; //USART2 Buffer
 	uint8_t GPS_FrameRdy; //Data frame ready to parse flag
 	GPS_Data_t GPS_Data;
@@ -27,21 +11,17 @@ UBX_Parser_t GPS2_Parser;
 
 PolarCoordinate_t PolarGPS_Destination;
 
-bool CoordinateUpdated = false;
-bool DestinationSet = false;
+uint8_t CoordinateUpdated = 0;
+uint8_t DestinationSet = 0;
 
 
 uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser);
 
 void GPS_Init() {
 	GPS1_Parser.GPS_Data.GPS_Number = 1;
-	GPS1_Parser.parser_state = UBX_DECODE_SYNC1;
-	//GPS1_Parser.GPS_frame = {0};
 	GPS1_Parser.GPS_FrameRdy = 0;
 
 	GPS2_Parser.GPS_Data.GPS_Number = 2;
-	GPS2_Parser.parser_state = UBX_DECODE_SYNC1;
-	//GPS2_Parser.GPS_frame = {0};
 	GPS2_Parser.GPS_FrameRdy = 0;
 
 	PolarGPS_Destination.latitude = 0.0;
@@ -49,6 +29,9 @@ void GPS_Init() {
 
 	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
 	__HAL_UART_ENABLE_IT(&huart6, UART_IT_RXNE);
+
+	HAL_GPIO_WritePin(GPS_D_SEL_GPIO_Port, GPS_D_SEL_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
 }
 
 void GPS_Read_Data() {
@@ -59,18 +42,7 @@ void GPS_Read_Data() {
 	//GPS1 Frame parse launcher
 	if (GPS1_Parser.GPS_FrameRdy != 0) {
 
-		//parse_UBX_char(&GPS1_Parser);
-//		i = 0;
-//		while (GPS1_Parser.GPS_frame[i] != UBX_SYNC1)
-//		{
-//			i++;
-//		}
-//
-//		if (i + 5 > 100)
-//		{
-//
-//		}
-
+		parse_UBX_char(&GPS1_Parser);
 
 	}
 
@@ -80,14 +52,6 @@ void GPS_Read_Data() {
 		parse_UBX_char(&GPS2_Parser);
 
 	}
-
-//	GNSS_log(&hgps);
-//
-//	PolarGPS_Coordinate.altitude = hgps.gps_position->alt / 1000.0;
-//	PolarGPS_Coordinate.latitude = hgps.gps_position->lat / 10000000.0;
-//	PolarGPS_Coordinate.longitude = hgps.gps_position->lon / 10000000.0;
-//	PolarGPS_Coordinate.fix_type = hgps.gps_position->fix_type;
-//	PolarGPS_Coordinate.N_satellites = hgps.satellite_info->count;
 
 
 	/***************************************************
@@ -138,6 +102,9 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 
 			_UBX_Parser->GPS_Data.rawlongitude = _UBX_Parser->GPS_frame[30] | (_UBX_Parser->GPS_frame[31] << 8) | (_UBX_Parser->GPS_frame[32] << 16) | (_UBX_Parser->GPS_frame[33] << 24);
 			_UBX_Parser->GPS_Data.PolarCoordinate.longitude = _UBX_Parser->GPS_Data.rawlongitude / 10000000.0;
+
+			_UBX_Parser->GPS_Data.CartesianCoordinate.X = (_UBX_Parser->GPS_Data.PolarCoordinate.longitude - PolarGPS_Destination.longitude) * LON_DEGREEVALUE;
+			_UBX_Parser->GPS_Data.CartesianCoordinate.Y = (_UBX_Parser->GPS_Data.PolarCoordinate.latitude - PolarGPS_Destination.latitude) * LAT_DEGREEVALUE;
 		}
 	}
 
@@ -147,12 +114,22 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 }
 
 GPS_Data_t* GPS_GetData() {
-	if (GPS2_Parser.GPS_Data.N_satellites >= GPS1_Parser.GPS_Data.N_satellites)
+	if ((GPS2_Parser.GPS_Data.N_satellites >= GPS1_Parser.GPS_Data.N_satellites) && (GPS2_Parser.GPS_Data.fix_type == 3))
 		return &GPS2_Parser.GPS_Data;
 	else if (GPS1_Parser.GPS_Data.fix_type == 3)
 	{
 		return &GPS1_Parser.GPS_Data;
 	}
+	return NULL;
+}
+
+GPS_Data_t* GPS_GetSpecificData(uint8_t _GPS_Number) {
+	if (GPS1_Parser.GPS_Data.GPS_Number == _GPS_Number){
+		return &GPS1_Parser.GPS_Data;
+	} else if (GPS2_Parser.GPS_Data.GPS_Number == _GPS_Number){
+		return &GPS2_Parser.GPS_Data;
+	}
+
 	return NULL;
 }
 
