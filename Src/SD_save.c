@@ -66,14 +66,14 @@ void SD_Save_Init()
 
 }
 
-void SD_Save_Data(uint8_t *_Save_String)
+void SD_Save_Data(char *_Save_String)
 {
   //RTC time and date handler
   RTC_TimeTypeDef sTime;
   RTC_DateTypeDef sDate;
 
   // buffer pour sauvegarder des donnees
-  uint8_t Save_String[512];
+  char Save_String[512];
 
   //SD card write
   HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
@@ -82,11 +82,11 @@ void SD_Save_Data(uint8_t *_Save_String)
   /***************************************************
    * SD save in buffer
    ***************************************************/
-  sprintf((char*) (Save_String), "20%02d-%02d-%02dT%02d:%02d:%02d,%s\n",
+  sprintf(Save_String, "20%02d-%02d-%02dT%02d:%02d:%02d,%s\n",
           sDate.Year, sDate.Month, sDate.Date, sTime.Hours, sTime.Minutes,
           sTime.Seconds, _Save_String);
 
-  f_puts((char*) Save_String, &data_file);
+  f_puts(Save_String, &data_file);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
