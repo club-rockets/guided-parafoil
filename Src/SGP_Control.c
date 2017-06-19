@@ -22,209 +22,194 @@
 Rocket_State_t Rocket_State = INITIALISATION;
 SGP_Control_State_t SGP_Control_State = SGP_INIT;
 
-PolarGPS_Coordinate_t PolarGPS_Destination = { .altitude = 0.0, .longitude = 0.0, .latitude = 0.0 };
-PolarGPS_Coordinate_t PolarGPS_Position = { .altitude = 0.0, .longitude = 0.0, .latitude = 0.0 };
-uint8_t DestinationSet = 0;
+PolarCoordinate_t PolarGPS_Position = {.longitude = 0.0, .latitude = 0.0 };
+//uint8_t DestinationSet = 0;
 
 //Motor test variable
 uint8_t motor_testState = 0;
 uint8_t motor_testCounter = 0;
 
-void SGP_Control_Init()
-{
-  Rocket_State = INITIALISATION;
-  SGP_Control_State = SGP_INIT;
-  DestinationSet = 0;
+void SGP_Control_Init() {
+	Rocket_State = INITIALISATION;
+	SGP_Control_State = SGP_INIT;
+	//DestinationSet = 0;
 
-  motor_testState = 0;
-  motor_testCounter = 0;
+	motor_testState = 0;
+	motor_testCounter = 0;
 
-  //TODO: search destination in backup RAM
+	//TODO: search destination in backup RAM
 }
 
 void SGP_Control_Loop() {
-  // buffer pour sauvegarder des donnees
-  uint8_t Save_String[512];
-  static uint32_t led_counter;
+	// buffer pour sauvegarder des donnees
+	uint8_t Save_String[512];
 
-  int Direction_Error = 0;
-  int MotorLeft_PosCmd, MotorRight_PosCmd = 0;
+	int Direction_Error = 0;
+	int MotorLeft_PosCmd, MotorRight_PosCmd = 0;
 
-  HAL_GPIO_TogglePin(GPIOD, LED2_Pin);
+	HAL_GPIO_TogglePin(GPIOD, LED2_Pin);
 
-  /* Rocket state */
-  switch (Rocket_State) {
+	/* Rocket state */
+	switch (Rocket_State) {
 
-    case INITIALISATION:
+	case INITIALISATION:
 
-      break;
+		break;
 
-    case STANDBY_ON_PAD:
+	case STANDBY_ON_PAD:
 
-      break;
+		break;
 
-    case LAUNCH:
+	case LAUNCH:
 
-      break;
+		break;
 
-    case POWERED_ASCENT:
+	case POWERED_ASCENT:
 
-      break;
+		break;
 
-    case ENGINE_BURNOUT:
+	case ENGINE_BURNOUT:
 
-      break;
+		break;
 
-    case COASTING_ASCENT:
+	case COASTING_ASCENT:
 
-      break;
+		break;
 
-    case APOGEE_REACHED:
+	case APOGEE_REACHED:
 
-      break;
+		break;
 
-    case DROGUE_DEPLOYMENT:
+	case DROGUE_DEPLOYMENT:
 
-      break;
+		break;
 
-    case DROGUE_DESCENT:
+	case DROGUE_DESCENT:
 
-      break;
+		break;
 
-    case MAIN_DEPLOYMENT:
+	case MAIN_DEPLOYMENT:
 
-      break;
+		break;
 
-    case MAIN_DESCENT:
+	case MAIN_DESCENT:
 
-      break;
+		break;
 
-    case LANDING:
+	case LANDING:
 
-      break;
+		break;
 
-    case RECOVERY:
+	case RECOVERY:
 
-      break;
+		break;
 
-    case PICKEDUP:
+	case PICKEDUP:
 
-      break;
+		break;
 
-    default:
-      Rocket_State = INITIALISATION;
-      break;
-  }
+	default:
+		Rocket_State = INITIALISATION;
+		break;
+	}
 
-  /* SGP Control system state */
-  switch (SGP_Control_State) {
+	/* SGP Control system state */
+	switch (SGP_Control_State) {
 
-      case SGP_INIT:
-          SGP_Control_State = SGP_STANDBY;
-        break;
+	case SGP_INIT:
+		SGP_Control_State = SGP_STANDBY;
+		break;
 
-      case SGP_STANDBY:
-          if (Rocket_State == MAIN_DESCENT)
-            SGP_Control_State = CALIBRATION_PHASE;
-        break;
+	case SGP_STANDBY:
+		if (Rocket_State == MAIN_DESCENT)
+			SGP_Control_State = CALIBRATION_PHASE;
+		break;
 
-      case CALIBRATION_PHASE:
+	case CALIBRATION_PHASE:
 
-        break;
+		break;
 
-      case MOTOR_TEST:
+	case MOTOR_TEST:
 
+		if (motor_testCounter == 0) {
+			Enable_MotorCMD();
+		}
 
-        if (motor_testCounter == 0)
-        {
-          Enable_MotorCMD();
-        }
+		if (motor_testCounter < 10) {
 
-        if (motor_testCounter < 10) {
+			MotorLeft_PosCmd = 5000;
+			MotorRight_PosCmd = 0;
 
-          MotorLeft_PosCmd = 5000;
-          MotorRight_PosCmd = 0;
+		} else if (motor_testCounter < 20) {
 
-        } else if (motor_testCounter < 20) {
+			MotorLeft_PosCmd = 0;
+			MotorRight_PosCmd = 5000;
 
-          MotorLeft_PosCmd = 0;
-          MotorRight_PosCmd = 5000;
+		} else {
 
-        } else {
+			MotorLeft_PosCmd = 0;
+			MotorRight_PosCmd = 0;
+			Disable_MotorCMD();
+			SGP_Control_State = SGP_INIT;
 
-          MotorLeft_PosCmd = 0;
-          MotorRight_PosCmd = 0;
-          Disable_MotorCMD();
-          SGP_Control_State = SGP_INIT;
+		}
 
-        }
+		Set_Motor_Command(MotorLeft_PosCmd, MotorRight_PosCmd);
+		motor_testCounter++;
+		break;
 
-        Set_Motor_Command(MotorLeft_PosCmd, MotorRight_PosCmd);
-        motor_testCounter++;
-        break;
+	default:
+		SGP_Control_State = SGP_INIT;
+		break;
+	}
 
-      default:
-        SGP_Control_State = SGP_INIT;
-        break;
-    }
+	/*
+	 if (Direction_Error > 0) {
+	 MotorLeft_PosCmd = PGAIN * 1400 + 300;
+	 MotorRight_PosCmd = 300;
+	 } else {
+	 MotorLeft_PosCmd = 300;
+	 MotorRight_PosCmd = PGAIN * 1400 + 300;
+	 }
 
+	 Set_Motor_Command(MotorLeft_PosCmd, MotorRight_PosCmd);
+	 */
+	/***************************************************
+	 * SD save in buffer
+	 ***************************************************/
+//	if (DestinationSet != 0) {
+//		sprintf((char*) (Save_String), "%s,%s,%i", "SGP_Control", "SGP Ready.",
+//				Rocket_State);
+//	} else {
+//		sprintf((char*) (Save_String), "%s,%s,%i", "SGP_Control",
+//				"Destination coordinate not set.", Rocket_State);
+//	}
 
-
-/*
-  if (Direction_Error > 0) {
-    MotorLeft_PosCmd = PGAIN * 1400 + 300;
-    MotorRight_PosCmd = 300;
-  } else {
-    MotorLeft_PosCmd = 300;
-    MotorRight_PosCmd = PGAIN * 1400 + 300;
-  }
-
-  Set_Motor_Command(MotorLeft_PosCmd, MotorRight_PosCmd);
-*/
-  /***************************************************
-   * SD save in buffer
-   ***************************************************/
-  if (DestinationSet != 0)
-  {
-    sprintf((char*) (Save_String), "%s,%s,%i", "SGP_Control", "SGP Ready.", Rocket_State);
-  } else {
-    sprintf((char*) (Save_String), "%s,%s,%i", "SGP_Control", "Destination coordinate not set.", Rocket_State);
-  }
-
-  SD_Save_Data(Save_String);
-  CANBUS_LaunchDataRead();
+	SD_Save_Data(Save_String);
+	//CANBUS_LaunchDataRead();
 }
 
-uint8_t Launch_MotorTest()
-{
-  if ((Rocket_State == INITIALISATION) || (Rocket_State != STANDBY_ON_PAD))
-  {
+uint8_t Launch_MotorTest() {
+	if ((Rocket_State == INITIALISATION) || (Rocket_State != STANDBY_ON_PAD)) {
 
-    motor_testCounter = 0;
-    SGP_Control_State = MOTOR_TEST;
-    return 0;
+		motor_testCounter = 0;
+		SGP_Control_State = MOTOR_TEST;
+		return 0;
 
-  } else {
+	} else {
 
-    return 1;
+		return 1;
 
-  }
+	}
 }
 
-void Set_Destination(PolarGPS_Coordinate_t _PolarDest_Coordinate)
-{
-  PolarGPS_Destination = _PolarDest_Coordinate;
-  DestinationSet = 1;
+
+
+void Set_RocketState(Rocket_State_t _Rocket_State) {
+	Rocket_State = _Rocket_State;
 }
 
-void Set_RocketState(Rocket_State_t _Rocket_State)
-{
-  Rocket_State = _Rocket_State;
-}
-
-Rocket_State_t Get_RocketState(void)
-{
+Rocket_State_t Get_RocketState(void) {
 	return Rocket_State;
 }
-
 

@@ -1,164 +1,162 @@
 #include "serial_com.h"
 
+void serial_menu() {
 
-void serial_menu()
-{
+	uint8_t val;
 
-  uint8_t val;
+	/***************************************************
+	 * USB SERIAL COM PORT
+	 ***************************************************/
 
+	//code test pour programmer l'horloge
+	//est presentement utilisé avec des script sur teraterm
+	//rx is done elsewhere in usb_cdc_if.c
+	if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
 
-  /***************************************************
-   * USB SERIAL COM PORT
-   ***************************************************/
+		if (USB_CDC_RX[0] == 's') {
 
-  //code test pour programmer l'horloge
-  //est presentement utilisé avec des script sur teraterm
-  //rx is done elsewhere in usb_cdc_if.c
-  if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED) {
+			HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
 
-    if (USB_CDC_RX[0] == 's') {
+			val = Launch_MotorTest();
+			//val = atoi(&USB_CDC_RX[4]);
 
+			//itoa(115, USB_CDC_TX, 10);
 
-      HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
+			if (val == 0)
+				strcpy(USB_CDC_TX, "Motor test launched\n\r");
+			else
+				strcpy(USB_CDC_TX, "Motor test canceled\n\r");
 
-      val = Launch_MotorTest();
-      //val = atoi(&USB_CDC_RX[4]);
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
-      //itoa(115, USB_CDC_TX, 10);
+			USB_CDC_RX[0] = 0;
+		}
 
-      if (val == 0)
-        strcpy(USB_CDC_TX,"Motor test launched\n\r");
-      else
-        strcpy(USB_CDC_TX,"Motor test canceled\n\r");
+		/* Left motor Command */
+		if (USB_CDC_RX[0] == 'q') {
 
-      CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+			config_Motor_Command(100, 0);
 
-      USB_CDC_RX[0] = 0;
-    }
+			strcpy(USB_CDC_TX, "LeftCMD: +100 rad\n\r");
 
-    /* Left motor Command */
-    if (USB_CDC_RX[0] == 'q') {
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
+			USB_CDC_RX[0] = 0;
+		}
 
-      config_Motor_Command(100, 0);
+		if (USB_CDC_RX[0] == 'a') {
 
-      strcpy(USB_CDC_TX,"LeftCMD: +100 rad\n\r");
+			config_Motor_Command(-100, 0);
 
-      CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+			strcpy(USB_CDC_TX, "LeftCMD: -100 rad\n\r");
 
-      USB_CDC_RX[0] = 0;
-    }
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
-    if (USB_CDC_RX[0] == 'a') {
+			USB_CDC_RX[0] = 0;
+		}
 
+		/* Left motor Command */
+		if (USB_CDC_RX[0] == 'e') {
 
-        config_Motor_Command(-100, 0);
+			config_Motor_Command(0, 100);
 
-        strcpy(USB_CDC_TX,"LeftCMD: -100 rad\n\r");
+			strcpy(USB_CDC_TX, "RightCMD: +100 rad\n\r");
 
-        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
-        USB_CDC_RX[0] = 0;
-      }
+			USB_CDC_RX[0] = 0;
+		}
 
-    /* Left motor Command */
-    if (USB_CDC_RX[0] == 'e') {
+		if (USB_CDC_RX[0] == 'd') {
 
+			config_Motor_Command(0, -100);
 
-      config_Motor_Command(0, 100);
+			strcpy(USB_CDC_TX, "RightCMD: -100 rad\n\r");
 
-      strcpy(USB_CDC_TX,"RightCMD: +100 rad\n\r");
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
-      CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+			USB_CDC_RX[0] = 0;
+		}
 
-      USB_CDC_RX[0] = 0;
-    }
+		if (USB_CDC_RX[0] == 'r') {
 
-    if (USB_CDC_RX[0] == 'd') {
+			MotorPos_Reset();
 
+			strcpy(USB_CDC_TX, "Motor position RESET\n\r");
 
-        config_Motor_Command(0, -100);
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
-        strcpy(USB_CDC_TX,"RightCMD: -100 rad\n\r");
+			USB_CDC_RX[0] = 0;
+		}
 
-        CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+		if (USB_CDC_RX[0] == 'z') {
 
-        USB_CDC_RX[0] = 0;
-      }
+			int motorleft = 0, motorright = 0;
+			float motorleft_pos = 0.0, motorright_pos = 0.0;
 
-    if (USB_CDC_RX[0] == 'r') {
+			motorleft = Get_LeftMotor_command();
+			motorright = Get_RightMotor_command();
 
+			motorleft_pos = Get_LeftMotor_position();
+			motorright_pos = Get_RightMotor_position();
 
-      MotorPos_Reset();
+			sprintf(USB_CDC_TX,
+					"\n\rMotorLeft CMD:%i\n\rMotorRight CMD:%i\n\rMotorLeft Position:%f\n\rMotorRight Position:%f\n\r",
+					motorleft, motorright, motorleft_pos, motorright_pos);
 
-      strcpy(USB_CDC_TX,"Motor position RESET\n\r");
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
-      CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+			USB_CDC_RX[0] = 0;
+		}
 
-      USB_CDC_RX[0] = 0;
-    }
+		if (USB_CDC_RX[0] == 'g') {
 
-    if (USB_CDC_RX[0] == 'z') {
+			GPS_Data_t *GPSData;
 
-      int motorleft = 0, motorright = 0;
-      float motorleft_pos = 0.0, motorright_pos = 0.0;
+			GPSData = GPS_GetData();
 
-      motorleft = Get_LeftMotor_command();
-      motorright = Get_RightMotor_command();
+			if (GPSData != NULL) {
+				sprintf(USB_CDC_TX,
+						"\n\rGPS DATA:\n\rGPS Number: %lu\n\rFix type: %lu\n\rLatitude: %f\n\rLongitude: %f\n\rX: %f\n\rY: %f\n\rNb Satellites: %lu\n\r",
+						GPSData->GPS_Number, GPSData->fix_type,
+						GPSData->PolarCoordinate.latitude,
+						GPSData->PolarCoordinate.longitude,
+						GPSData->CartesianCoordinate.X,
+						GPSData->CartesianCoordinate.Y, GPSData->N_satellites);
+			}
+			else
+			{
+				sprintf(USB_CDC_TX,
+						"\n\rGPS DATA: no fix\n\r");
+			}
 
-      motorleft_pos = Get_LeftMotor_position();
-      motorright_pos = Get_RightMotor_position();
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
-      sprintf(USB_CDC_TX, "\n\rMotorLeft CMD:%i\n\rMotorRight CMD:%i\n\rMotorLeft Position:%f\n\rMotorRight Position:%f\n\r",motorleft, motorright, motorleft_pos, motorright_pos);
+			USB_CDC_RX[0] = 0;
+		}
 
-      CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
+		if (USB_CDC_RX[0] == 'c') {
 
-      USB_CDC_RX[0] = 0;
-    }
+			uint8_t res = 0;
+			hcan2.pTxMsg->Data[0] = 'a';
+			hcan2.pTxMsg->Data[1] = 'b';
+			hcan2.pTxMsg->Data[2] = 'c';
+			hcan2.pTxMsg->Data[3] = 'd';
+			hcan2.pTxMsg->Data[4] = 'e';
+			hcan2.pTxMsg->StdId = 0x001;
+			hcan2.pTxMsg->DLC = 2;
 
-    if (USB_CDC_RX[0] == 'g') {
+			res = HAL_CAN_Transmit(&hcan2, 5);
 
-      PolarGPS_Coordinate_t polar_pos, polar_dest;
-      CartesianGPS_Coordinate_t cart_pos;
+			sprintf(USB_CDC_TX, "CAN TEST: %i\n\r", Get_RocketState());
+			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
 
-      //Hall A ETS
-      polar_dest.altitude = 0;
-      polar_dest.latitude = 45.495414;
-      polar_dest.longitude = -73.563063;
-
-      polar_pos = GPS_GetCoordinate();
-      cart_pos = GPS_GetCartesianCoordinate(polar_dest);
-
-      sprintf(USB_CDC_TX, "\n\rGPS DATA:\n\rFix type: %lu\n\rLatitude: %f\n\rLongitude: %f\n\rX: %f\n\rY: %f\n\rNb Satellites: %lu\n\r", polar_pos.fix_type, polar_pos.latitude, polar_pos.longitude, cart_pos.x, cart_pos.y, polar_pos.N_satellites);
-
-      CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
-
-      USB_CDC_RX[0] = 0;
-    }
-
-    if (USB_CDC_RX[0] == 'c') {
-
-      uint8_t res = 0;
-      hcan2.pTxMsg->Data[0] = 'a';
-      hcan2.pTxMsg->Data[1] = 'b';
-      hcan2.pTxMsg->Data[2] = 'c';
-      hcan2.pTxMsg->Data[3] = 'd';
-      hcan2.pTxMsg->Data[4] = 'e';
-      hcan2.pTxMsg->StdId = 0x001;
-      hcan2.pTxMsg->DLC = 2;
-
-      res = HAL_CAN_Transmit(&hcan2, 5);
-
-      sprintf(USB_CDC_TX, "CAN TEST: %i\n\r", Get_RocketState());
-      CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));
-
-      USB_CDC_RX[0] = 0;
-    }
-  }
+			USB_CDC_RX[0] = 0;
+		}
+	}
 }
 
-void Send_serial_message(char* _message)
-{
-  //memcpy(USB_CDC_TX, _message, strlen(_message));
-  CDC_Transmit_FS((uint8_t *)_message, strlen(_message));
+void Send_serial_message(char* _message) {
+	//memcpy(USB_CDC_TX, _message, strlen(_message));
+	CDC_Transmit_FS((uint8_t *) _message, strlen(_message));
 }

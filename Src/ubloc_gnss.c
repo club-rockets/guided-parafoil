@@ -981,7 +981,6 @@ static int payload_rx_done(void)
 
 	case UBX_MSG_NAV_PVT:
 		//printf("Rx NAV-PVT\n");
-	  HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
 
 		hgps->gps_position->fix_type		= Parser.buf_packet.payload_rx_nav_pvt.fixType;
 		hgps->gps_position->satellites_used	= Parser.buf_packet.payload_rx_nav_pvt.numSV;

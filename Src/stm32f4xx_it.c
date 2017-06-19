@@ -37,6 +37,7 @@
 
 /* USER CODE BEGIN 0 */
 extern uint8_t usart2_rx[GPS_FRAME_LENGTH];
+extern uint8_t usart6_rx[GPS_FRAME_LENGTH];
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -326,7 +327,7 @@ void USART6_IRQHandler(void)
   /* USER CODE END USART6_IRQn 0 */
   HAL_UART_IRQHandler(&huart6);
   /* USER CODE BEGIN USART6_IRQn 1 */
-
+  HAL_UART_Receive_IT(&huart6, usart6_rx, 100);
   /* USER CODE END USART6_IRQn 1 */
 }
 

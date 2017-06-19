@@ -74,16 +74,6 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-//Buffer for GPS Ublox data frame
-//uint8_t usart2_rx[GPS_FRAME_LENGTH];
-uint8_t usart6_rx[GPS_FRAME_LENGTH];
-
-uint8_t GPS1_frame[GPS_FRAME_LENGTH] = {0};//USART2 Buffer
-uint8_t GPS2_frame[GPS_FRAME_LENGTH] = {0};//USART6 Buffer
-
-//Data frame parse flag
-uint8_t GPS1_FrameRdy, GPS2_FrameRdy = 0;
-
 //temp
 uint8_t temp_val = 0;
 // buffer pour comm CANbus
@@ -101,7 +91,6 @@ static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
-
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -113,10 +102,10 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
-  int i = 0;
-  uint8_t Save_String[512];
-  uint8_t buffer[64];
-  uint8_t data[100] = { 0 };
+	int i = 0;
+	uint8_t Save_String[512];
+	uint8_t buffer[64];
+	uint8_t data[100] = { 0 };
 
   /* USER CODE END 1 */
 
@@ -151,63 +140,69 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
 
-  hcan2.pTxMsg = &CanTx_msg;
-  hcan2.pRxMsg = &CanRx_msg;
+	hcan2.pTxMsg = &CanTx_msg;
+	hcan2.pRxMsg = &CanRx_msg;
 
-  CAN_FilterStruct.FilterNumber = 14;                    //Specifies the filter which will be initialized.
-  CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDMASK;  //Specifies the filter mode to be initialized.
-                                                        //CAN_FILTERMODE_IDLIST : Identifier list mode
-  CAN_FilterStruct.FilterScale = CAN_FILTERSCALE_32BIT;
-  CAN_FilterStruct.FilterIdHigh = 0;//Specifies the filter identification number (MSBs for a 32-bit configuration, first one for a 16-bit configuration).
-  CAN_FilterStruct.FilterIdLow = 0;
-  CAN_FilterStruct.FilterMaskIdHigh = 0;
-  CAN_FilterStruct.FilterMaskIdLow = 0;
-  CAN_FilterStruct.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-  CAN_FilterStruct.FilterActivation = ENABLE; /* Enable this filter */
-  CAN_FilterStruct.BankNumber = 14;
+	CAN_FilterStruct.FilterNumber = 14; //Specifies the filter which will be initialized.
+	CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDMASK; //Specifies the filter mode to be initialized.
+														 //CAN_FILTERMODE_IDLIST : Identifier list mode
+	CAN_FilterStruct.FilterScale = CAN_FILTERSCALE_32BIT;
+	CAN_FilterStruct.FilterIdHigh = 0; //Specifies the filter identification number (MSBs for a 32-bit configuration, first one for a 16-bit configuration).
+	CAN_FilterStruct.FilterIdLow = 0;
+	CAN_FilterStruct.FilterMaskIdHigh = 0;
+	CAN_FilterStruct.FilterMaskIdLow = 0;
+	CAN_FilterStruct.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+	CAN_FilterStruct.FilterActivation = ENABLE; /* Enable this filter */
+	CAN_FilterStruct.BankNumber = 14;
 
-  HAL_CAN_ConfigFilter(&hcan2, &CAN_FilterStruct);
+	HAL_CAN_ConfigFilter(&hcan2, &CAN_FilterStruct);
 
-  hcan2.pTxMsg->StdId = 0x244;
-  hcan2.pTxMsg->RTR = CAN_RTR_DATA;
-  hcan2.pTxMsg->IDE = CAN_ID_STD;
-  hcan2.pTxMsg->DLC = 1;
+	hcan2.pTxMsg->StdId = 0x244;
+	hcan2.pTxMsg->RTR = CAN_RTR_DATA;
+	hcan2.pTxMsg->IDE = CAN_ID_STD;
+	hcan2.pTxMsg->DLC = 1;
 
-  //init main handlers and stuff
-  SD_Save_Init();
-  Motor_Init();
-  GPS_Init();
-  SGP_Control_Init();
+	//init main handlers and stuff
+	SD_Save_Init();
+	Motor_Init();
+	GPS_Init();
+	SGP_Control_Init();
 
-  HAL_Delay(1000);
+	HAL_Delay(1000);
 
-  //start uart interrupt for GPS, cte lenght rx
-  __HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
+	//start uart interrupt for GPS, cte lenght rx
 
-  //TIMER START
-  HAL_TIM_Base_Start(&htim2);
-  HAL_TIM_Base_Start_IT(&htim3);
-  HAL_TIM_Base_Start_IT(&htim4);
-  HAL_TIM_Base_Start_IT(&htim6);
+	//TIMER START
+	HAL_TIM_Base_Start(&htim2);
+	HAL_TIM_Base_Start_IT(&htim3);
+	HAL_TIM_Base_Start_IT(&htim4);
+	HAL_TIM_Base_Start_IT(&htim6);
 
-  //CAN START
-  HAL_GPIO_WritePin(CAN_STANDBY_GPIO_Port, CAN_STANDBY_Pin, GPIO_PIN_RESET);
-  __HAL_CAN_ENABLE_IT(&hcan2, CAN_IT_FMP0);
+	//CAN START
+	HAL_GPIO_WritePin(CAN_STANDBY_GPIO_Port, CAN_STANDBY_Pin, GPIO_PIN_RESET);
+	__HAL_CAN_ENABLE_IT(&hcan2, CAN_IT_FMP0);
 
+	PolarCoordinate_t polar_dest;
+
+	//Hall A ETS
+	polar_dest.latitude = 32.342665;
+	polar_dest.longitude = -106.763651;
+
+	Set_GPSDestination(polar_dest);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1) {
+	while (1) {
 
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
 
-	serial_menu();
+		serial_menu();
 
-  }
+	}
   /* USER CODE END 3 */
 
 }
@@ -320,73 +315,47 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 	static int modulo = 0;
 
-  if (htim->Instance == TIM3)
-  {
-    if (!(modulo % 20))
-    {
-    	SGP_Control_Loop();
+	if (htim->Instance == TIM3) {
+		if (!(modulo % 20)) {
+			SGP_Control_Loop();
 
-    }
-    if (!(modulo % 4))
-    {
-    	//GPS1 Frame parse launcher
-		if (GPS1_FrameRdy != 0)
-		{
-		  //GPS_Read_Data(GPS1_frame);
-		  GPS1_FrameRdy = 0;
 		}
-    }
+		if (!(modulo % 4)) {
+			GPS_Read_Data();
+		}
 
-	  MotorCMD_Loop();
-	  modulo++;
-  }
+		MotorCMD_Loop();
+		modulo++;
+	}
 
 //  if (htim->Instance == TIM4)
 //  {
 //    SGP_Control_Loop();
 //  }
 
-  if (htim->Instance == TIM6)
-  {
-    SD_Save_Loop();
-  }
+	if (htim->Instance == TIM6) {
+		SD_Save_Loop();
+	}
 
-}
-
-//UsART
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-
-  //GPS1 UBX frame caption
-  if(huart->Instance == USART2){
-    HAL_GPIO_TogglePin(GPIOD, LED1_Pin);
-    memcpy(GPS1_frame, usart2_rx, sizeof(usart2_rx));
-    GPS1_FrameRdy = 1;
-
-    //HAL_UART_Receive_IT(&huart2, usart2_rx, 100);
-  }
 }
 
 //CAN
-void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan){
+void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
 
-  if (hcan->Instance == CAN2)
-  {
+	if (hcan->Instance == CAN2) {
 
-    char message[8] = {0};
+		char message[8] = { 0 };
 
-    memcpy(message, hcan->pRxMsg->Data, sizeof(Rocket_State_t));
+		memcpy(message, hcan->pRxMsg->Data, sizeof(Rocket_State_t));
 
-    if (hcan->pRxMsg->StdId == 0x11)
-    {
-    	Set_RocketState(message[0]);
-    }
+		if (hcan->pRxMsg->StdId == 0x11) {
+			Set_RocketState(message[0]);
+		}
 
-    Send_serial_message(message);
+		Send_serial_message(message);
 
-
-
-    __HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
-  }
+		__HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
+	}
 
 }
 
@@ -402,9 +371,9 @@ void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan){
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler */
-  /* User can add his own implementation to report the HAL error return state */
-  while (1) {
-  }
+	/* User can add his own implementation to report the HAL error return state */
+	while (1) {
+	}
   /* USER CODE END Error_Handler */ 
 }
 
@@ -420,8 +389,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t* file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-   ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	/* User can add his own implementation to report the file name and line number,
+	 ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 
 }
