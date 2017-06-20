@@ -29,6 +29,9 @@ PolarCoordinate_t PolarGPS_Position = {.longitude = 0.0, .latitude = 0.0 };
 uint8_t motor_testState = 0;
 uint8_t motor_testCounter = 0;
 
+//Path planning variable
+SGP_Data_t SGP_Data;
+
 void SGP_Control_Init() {
 	Rocket_State = INITIALISATION;
 	SGP_Control_State = SGP_INIT;
@@ -37,7 +40,6 @@ void SGP_Control_Init() {
 	motor_testState = 0;
 	motor_testCounter = 0;
 
-	//TODO: search destination in backup RAM
 }
 
 void SGP_Control_Loop() {
@@ -112,6 +114,18 @@ void SGP_Control_Loop() {
 		Rocket_State = INITIALISATION;
 		break;
 	}
+
+//	SGP_Data.oldGPS_data = SGP_Data.GPS_data;
+//	SGP_Data.GPS_data = GPS_GetData();
+//
+//	SGP_Data.uCurrentDir.X = SGP_Data.GPS_data.CartesianCoordinate.X - SGP_Data.oldGPS_data.CartesianCoordinate.X;
+//	SGP_Data.uCurrentDir.Y = SGP_Data.GPS_data.CartesianCoordinate.Y - SGP_Data.oldGPS_data.CartesianCoordinate.Y;
+//
+//	SGP_Data.HorzSpeed = sqrt((SGP_Data.uCurrentDir.X)^2 + (SGP_Data.uCurrentDir.Y)^2);
+//
+//	SGP_Data.uCurrentDir.X = SGP_D
+//
+//	uCurrentDir = [GPS_Latitude - DelayGPS_Latitude, GPS_Longitude - DelayGPS_Longitude, 0]/HorzSpeed;
 
 	/* SGP Control system state */
 	switch (SGP_Control_State) {

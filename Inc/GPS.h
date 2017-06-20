@@ -97,6 +97,8 @@ typedef struct GPS_Data_s {
 	float altitude;
 	uint8_t fix_type;
 	uint8_t N_satellites;
+	int32_t ground_speed;
+	int32_t heading_motion;
 } GPS_Data_t;
 
 /******************************************************************************/

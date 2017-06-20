@@ -30,6 +30,10 @@
 #define POS_TOLERANCE     10// +/- 10LSB
 #define CMD_STATURATION   12// +/- 12V
 
+#define LEFT_CABLE_LENGTH  61
+#define RIGHT_CABLE_LENGTH 63
+#define CM_TO_RAD          140
+
 
 /******************************************************************************/
 /*                             Function prototype                             */
@@ -45,5 +49,6 @@ void config_Motor_Command(int _MotorLeft_ConfCmd, int _MotorRight_ConfCmd);
 void MotorPos_Reset();
 void Enable_MotorCMD();
 void Disable_MotorCMD();
+void CalibrateMotor();
 
 #endif /* MOTORCMD_H_ */

@@ -203,6 +203,8 @@ int main(void)
 
 	Set_GPSDestination(polar_dest);
 
+
+	CalibrateMotor();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -212,8 +214,8 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-
 		serial_menu();
+
 
 	}
   /* USER CODE END 3 */
@@ -329,15 +331,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	static int modulo = 0;
 
 	if (htim->Instance == TIM3) {
+
+		MotorCMD_Loop();
+
 		if (!(modulo % 20)) {
 			SGP_Control_Loop();
-
 		}
 		if (!(modulo % 4)) {
 			GPS_Read_Data();
 		}
 
-		MotorCMD_Loop();
 		modulo++;
 	}
 
@@ -347,7 +350,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 //  }
 
 	if (htim->Instance == TIM6) {
-		SD_Save_Loop();
+		//SD_Save_Loop();
 	}
 
 }
@@ -398,7 +401,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		f_close(&data_file);
 	  }
 	}
-	else if (GPIO_Pin == GPIO_PIN_4) {
+	//else if (GPIO_Pin == GPIO_PIN_4) {
+	else if (0) {
 		uint8_t rxPipeBuf[8] = { 0 };
 				uint8_t* rxmsg = NULL;
 				uint16_t notification_size = 0, measurement_size = 0;

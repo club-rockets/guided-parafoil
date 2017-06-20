@@ -103,6 +103,9 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 			_UBX_Parser->GPS_Data.rawlongitude = _UBX_Parser->GPS_frame[30] | (_UBX_Parser->GPS_frame[31] << 8) | (_UBX_Parser->GPS_frame[32] << 16) | (_UBX_Parser->GPS_frame[33] << 24);
 			_UBX_Parser->GPS_Data.PolarCoordinate.longitude = _UBX_Parser->GPS_Data.rawlongitude / 10000000.0;
 
+			_UBX_Parser->GPS_Data.ground_speed = _UBX_Parser->GPS_frame[66] | (_UBX_Parser->GPS_frame[67] << 8) | (_UBX_Parser->GPS_frame[68] << 16) | (_UBX_Parser->GPS_frame[69] << 24);
+			_UBX_Parser->GPS_Data.heading_motion = _UBX_Parser->GPS_frame[70] | (_UBX_Parser->GPS_frame[71] << 8) | (_UBX_Parser->GPS_frame[72] << 16) | (_UBX_Parser->GPS_frame[73] << 24);
+
 			_UBX_Parser->GPS_Data.CartesianCoordinate.X = (_UBX_Parser->GPS_Data.PolarCoordinate.longitude - PolarGPS_Destination.longitude) * LON_DEGREEVALUE;
 			_UBX_Parser->GPS_Data.CartesianCoordinate.Y = (_UBX_Parser->GPS_Data.PolarCoordinate.latitude - PolarGPS_Destination.latitude) * LAT_DEGREEVALUE;
 		}

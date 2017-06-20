@@ -26,7 +26,7 @@ void serial_menu();
 void Send_serial_message(char* _message);
 
 //Buffer for virtual com port USB
-  uint8_t USB_CDC_RX[64];
-  uint8_t USB_CDC_TX[64];
+  uint8_t USB_CDC_RX[256];
+  uint8_t USB_CDC_TX[256];
 
 #endif /* SERIAL_COM_H_ */

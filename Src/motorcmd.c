@@ -67,7 +67,6 @@ void MotorCMD_Loop() {
   int LeftCnt = 0, RightCnt = 0;
 
   /*  Motor driver  */
-  static uint32_t led_counter;
   static float previous_MotorLeft_SpeedErr, previous_MotorRight_SpeedErr;  //Previous speed error
   static float previous_MotorLeft_Cmd, previous_MotorRight_Cmd;  //Previous motor command
 
@@ -246,4 +245,17 @@ float SaturateCMD(float _command)
      return -CMD_STATURATION;
    }
   return _command;
+}
+
+void CalibrateMotor()
+{
+	float left_length = 0.0;
+	float rigth_length = 0.0;
+
+	left_length = (LEFT_CABLE_LENGTH - 55.0) * CM_TO_RAD;//(cable_length (cm) - cable_normal_position (cm)) * CM_TO_RAD rad (CM_TO_RAD rad = 1 cm)
+	rigth_length = (RIGHT_CABLE_LENGTH - 55.0) * CM_TO_RAD;
+
+	Set_Motor_Command(left_length, rigth_length);
+	HAL_Delay(2000);
+	MotorPos_Reset();
 }

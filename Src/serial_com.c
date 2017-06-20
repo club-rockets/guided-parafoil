@@ -117,12 +117,13 @@ void serial_menu() {
 
 			if (GPSData != NULL) {
 				sprintf(USB_CDC_TX,
-						"\n\rGPS DATA:\n\rGPS Number: %i\n\rFix type: %i\n\rLatitude: %f\n\rLongitude: %f\n\rX: %f\n\rY: %f\n\rNb Satellites: %lu\n\r",
+						"\n\rGPS DATA:\n\rGPS Number: %i\n\rFix type: %i\n\rLatitude: %f\n\rLongitude: %f\n\rX: %f\n\rY: %f\n\rNb Satellites: %lu\n\rGround speed (mm): %lu\n\rHeading of motion (deg): %lu\n\r",
 						GPSData->GPS_Number, GPSData->fix_type,
 						GPSData->PolarCoordinate.latitude,
 						GPSData->PolarCoordinate.longitude,
 						GPSData->CartesianCoordinate.X,
-						GPSData->CartesianCoordinate.Y, GPSData->N_satellites);
+						GPSData->CartesianCoordinate.Y, GPSData->N_satellites,
+						GPSData->ground_speed, GPSData->heading_motion);
 			}
 			else
 			{

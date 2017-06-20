@@ -56,6 +56,28 @@ typedef enum SGP_Control_State_m {
   MOTOR_TEST
 } SGP_Control_State_t;
 
+typedef struct vector_2D_s {
+	float X;
+	float Y;
+} vector_2D_t;
+
+typedef struct Bezier_curve_s {
+	vector_2D_t tip;
+	vector_2D_t cp1;
+	vector_2D_t cp2;
+	vector_2D_t fap;
+} Bezier_curve_t;
+
+typedef struct SGP_Data_s {
+	Bezier_curve_t bezier_data;
+	GPS_Data_t GPS_data;
+	GPS_Data_t oldGPS_data;
+	float HorzSpeed;
+	vector_2D_t uCurrentDir;
+} SGP_Data_t;
+
+
+
 /******************************************************************************/
 /*                             Global variable                                */
 /******************************************************************************/

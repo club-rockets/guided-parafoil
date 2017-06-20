@@ -82,14 +82,14 @@ void mti_handle_message(MTiMsg* msg)
 		mti_send_message(MSG_WAKEUP_ACK);
 		delay_us(100);
 		mti_send_message(MSG_SET_OUTPUT_CONFIGURATION);
-		Send_serial_message("WAKEUP ACK, SET_OUTPUT\n\r");
+		//Send_serial_message("WAKEUP ACK, SET_OUTPUT\n\r");
 		break;
 
 	case MID_SET_OUTPUT_CONFIGURATION_ACK:
 		SD_Save_Data("MTi_DATA,PacketCounter,SampleTime,EulerX,EulerY,EulerZ,DeltaVX,DeltaVY,DeltaVZ,AccX,AccY,AccZ,FreeAccX,FreeAccY,FreeAccZ,RoTX,RoTY,RoTZ,DeltaQ1,DeltaQ2,DeltaQ3,DeltaQ4,MagFieldX,MagFieldY,MagFieldZ,Status");
 		delay_us(10);
 		mti_send_message(MSG_SET_SYNC_SETTINGS);
-		Send_serial_message("SET_OUTPUT_ACK, SET_SYNC\n\r");
+		//Send_serial_message("SET_OUTPUT_ACK, SET_SYNC\n\r");
 		break;
 
 	case MID_MTDATA2:
@@ -99,21 +99,21 @@ void mti_handle_message(MTiMsg* msg)
 
 	case MID_SET_SYNC_SETTINGS_ACK:
 		mti_send_message(MSG_GOTO_MEASUREMENT);
-		Send_serial_message("SET_SYNC_ACK, GOTO_MEASUREMENT\n\r");
+		//Send_serial_message("SET_SYNC_ACK, GOTO_MEASUREMENT\n\r");
 		break;
 
 	case MID_REQ_DATA_ACK:
 		break;
 
 	case MID_GOTO_MEASUREMENT_ACK:
-		Send_serial_message("GOTO_MEASUREMENT_ACK\n\r");
+		//Send_serial_message("GOTO_MEASUREMENT_ACK\n\r");
 		break;
 
 	default:
 		HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_RESET);
 		char errcode[10] = {0};
 		sprintf(errcode, "ERR : %02x", msg->mid);
-		Send_serial_message(errcode);
+		//Send_serial_message(errcode);
 		break;
 	}
 }
@@ -169,6 +169,6 @@ void mti_handle_mtdata2(MTiMsg* msg)
 
 	//write to sd card
 	SD_Save_Data(str);
-	Send_serial_message(str);
-	Send_serial_message("\n\r");
+	//Send_serial_message(str);
+	//Send_serial_message("\n\r");
 }
