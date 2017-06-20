@@ -67,6 +67,7 @@
 #include "SD_save.h"
 #include "GPS.h"
 #include "serial_com.h"
+#include "mti.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -80,6 +81,12 @@ uint8_t temp_val = 0;
 CanTxMsgTypeDef CanTx_msg;
 CanRxMsgTypeDef CanRx_msg;
 CAN_FilterConfTypeDef CAN_FilterStruct;
+
+extern FATFS fs;         // Work area (file system object) for logical drive
+extern FIL data_file;  // file objects for data logging
+extern FIL error_file;  // file objects for error logging
+//FRESULT res;        // FatFs function common result code
+extern uint32_t byteread, bytewritten;         // File R/W count
 
 /* USER CODE END PV */
 
@@ -168,6 +175,9 @@ int main(void)
 	GPS_Init();
 	SGP_Control_Init();
 
+	//MTi release reset
+	HAL_GPIO_WritePin(MTi_RST_GPIO_Port, MTi_RST_Pin, GPIO_PIN_RESET);
+
 	HAL_Delay(1000);
 
 	//start uart interrupt for GPS, cte lenght rx
@@ -177,6 +187,9 @@ int main(void)
 	HAL_TIM_Base_Start_IT(&htim3);
 	HAL_TIM_Base_Start_IT(&htim4);
 	HAL_TIM_Base_Start_IT(&htim6);
+
+	//MTi release reset
+	HAL_GPIO_WritePin(MTi_RST_GPIO_Port, MTi_RST_Pin, GPIO_PIN_SET);
 
 	//CAN START
 	HAL_GPIO_WritePin(CAN_STANDBY_GPIO_Port, CAN_STANDBY_Pin, GPIO_PIN_RESET);
@@ -303,7 +316,7 @@ static void MX_NVIC_Init(void)
   HAL_NVIC_SetPriority(USART6_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(USART6_IRQn);
   /* EXTI4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 2, 0);
   HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 }
 
@@ -359,7 +372,69 @@ void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
 
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+
+	if (GPIO_Pin == SD_DETECT_Pin) {
+	  uint8_t Save_String[512];
+
+	  //HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
+	  //recall all init process
+	  //pretty slow, but works quite well
+
+	  if (BSP_SD_Init() == 0) {
+		f_mount(&fs, (TCHAR const*) SD_Path, 1);
+		f_open(&data_file, FILENAME, FA_OPEN_ALWAYS | FA_WRITE);
+		f_lseek(&data_file, f_size(&data_file));
+
+		//Log file header
+		strcpy((char*) Save_String, DATA_LOG_HEADER);
+		f_puts((char*) Save_String, &data_file);
+
+		//column title
+		strcpy((char*) Save_String, DATA_LOG_COL_NAME);
+		f_puts((char*) Save_String, &data_file);
+
+		//write file to sd
+		f_close(&data_file);
+	  }
+	}
+	else if (GPIO_Pin == GPIO_PIN_4) {
+		uint8_t rxPipeBuf[8] = { 0 };
+				uint8_t* rxmsg = NULL;
+				uint16_t notification_size = 0, measurement_size = 0;
+				uint8_t pipe = 0;
+				MTiMsg msg;
+
+				pipe = 0x04;
+				HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
+				HAL_SPI_TransmitReceive(&hspi1, &pipe, rxPipeBuf, 8, 100);
+				HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_SET);
+
+				// Prepare buffers for receiving message
+				notification_size = (rxPipeBuf[4] | rxPipeBuf[5] << 8);
+				measurement_size  = (rxPipeBuf[6] | rxPipeBuf[7] << 8);
+
+				rxmsg = (uint8_t*)malloc((notification_size != 0 ? notification_size : measurement_size) + 4);
+				pipe = (notification_size != 0 ? 0x05 : 0x06);
+				HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
+				HAL_SPI_Transmit(&hspi1, &pipe, 1, 100);
+				HAL_SPI_Receive(&hspi1, rxmsg, (notification_size != 0 ? notification_size : measurement_size) + 3, 100);
+				HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_SET);
+
+				msg.mid = rxmsg[3];
+				msg.len = rxmsg[4];
+				msg.data = &rxmsg[5];
+
+				mti_handle_message(&msg);
+
+			  free(rxmsg);
+	}
+
+}
+
 /* peripheral callback END */
+
+
 
 /* USER CODE END 4 */
 

@@ -11,12 +11,14 @@
 #include "stm32f4xx_it.h"
 #include "SD_save.h"
 #include "main.h"
+#include "serial_com.h"
 
 // External variables
 extern SPI_HandleTypeDef hspi1;
 
 /* XBus Messages */
 static const uint8_t MSG_WAKEUP_ACK[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x3F, 0x00, 0xC2 };
+static const uint8_t MSG_SET_SYNC_SETTINGS[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x2C, 0x0C, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xBB};
 static const uint8_t MSG_GOTO_MEASUREMENT[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x10, 0x00, 0xF1 };
 
 static const uint8_t MSG_SET_OUTPUT_CONFIGURATION[] = {
@@ -66,7 +68,7 @@ uint8_t mti_checksum(uint8_t* message, uint8_t len)
 	return ((uint8_t)~sum) + 1;
 }
 
-void mti_send_message(const uint8_t* msg, uint8_t ack)
+void mti_send_message(const uint8_t* msg)
 {
 	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
 	HAL_SPI_Transmit(&hspi1, msg, 7 + msg[5], 100);
@@ -77,27 +79,41 @@ void mti_handle_message(MTiMsg* msg)
 {
 	switch (msg->mid) {
 	case MID_WAKEUP:
-		mti_send_message(MSG_WAKEUP_ACK, 0);
-		HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
+		mti_send_message(MSG_WAKEUP_ACK);
 		delay_us(100);
-		mti_send_message(MSG_SET_OUTPUT_CONFIGURATION, 1);
+		mti_send_message(MSG_SET_OUTPUT_CONFIGURATION);
+		Send_serial_message("WAKEUP ACK, SET_OUTPUT\n\r");
 		break;
 
 	case MID_SET_OUTPUT_CONFIGURATION_ACK:
 		SD_Save_Data("MTi_DATA,PacketCounter,SampleTime,EulerX,EulerY,EulerZ,DeltaVX,DeltaVY,DeltaVZ,AccX,AccY,AccZ,FreeAccX,FreeAccY,FreeAccZ,RoTX,RoTY,RoTZ,DeltaQ1,DeltaQ2,DeltaQ3,DeltaQ4,MagFieldX,MagFieldY,MagFieldZ,Status");
 		delay_us(10);
-		mti_send_message(MSG_GOTO_MEASUREMENT, 1);
-		break;
-
-	case MID_GOTO_MEASUREMENT_ACK:
+		mti_send_message(MSG_SET_SYNC_SETTINGS);
+		Send_serial_message("SET_OUTPUT_ACK, SET_SYNC\n\r");
 		break;
 
 	case MID_MTDATA2:
+		HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
 		mti_handle_mtdata2(msg);
+		break;
+
+	case MID_SET_SYNC_SETTINGS_ACK:
+		mti_send_message(MSG_GOTO_MEASUREMENT);
+		Send_serial_message("SET_SYNC_ACK, GOTO_MEASUREMENT\n\r");
+		break;
+
+	case MID_REQ_DATA_ACK:
+		break;
+
+	case MID_GOTO_MEASUREMENT_ACK:
+		Send_serial_message("GOTO_MEASUREMENT_ACK\n\r");
 		break;
 
 	default:
 		HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_RESET);
+		char errcode[10] = {0};
+		sprintf(errcode, "ERR : %02x", msg->mid);
+		Send_serial_message(errcode);
 		break;
 	}
 }
@@ -105,7 +121,7 @@ void mti_handle_message(MTiMsg* msg)
 void mti_handle_mtdata2(MTiMsg* msg)
 {
 	uint8_t* data = msg->data;
-	char str[300] = { 0 };
+	char str[512] = { 0 };
 
 	uint8_t data_count = 0;
 	uint16_t dataid = 0;
@@ -153,4 +169,6 @@ void mti_handle_mtdata2(MTiMsg* msg)
 
 	//write to sd card
 	SD_Save_Data(str);
+	Send_serial_message(str);
+	Send_serial_message("\n\r");
 }

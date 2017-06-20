@@ -216,35 +216,7 @@ void EXTI3_IRQHandler(void)
 void EXTI4_IRQHandler(void)
 {
 	/* USER CODE BEGIN EXTI9_5_IRQn 0 */
-		uint8_t rxPipeBuf[8] = { 0 };
-		uint8_t* rxmsg = NULL;
-		uint16_t notification_size = 0, measurement_size = 0;
-		uint8_t pipe = 0;
-		MTiMsg msg;
 
-		pipe = 0x04;
-		HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
-		HAL_SPI_TransmitReceive(&hspi1, &pipe, rxPipeBuf, 8, 100);
-		HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_SET);
-
-		// Prepare buffers for receiving message
-		notification_size = (rxPipeBuf[4] | rxPipeBuf[5] << 8);
-		measurement_size  = (rxPipeBuf[6] | rxPipeBuf[7] << 8);
-
-		rxmsg = (uint8_t*)malloc((notification_size != 0 ? notification_size : measurement_size) + 4);
-		pipe = (notification_size != 0 ? 0x05 : 0x06);
-		HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
-		HAL_SPI_Transmit(&hspi1, &pipe, 1, 100);
-		HAL_SPI_Receive(&hspi1, rxmsg, (notification_size != 0 ? notification_size : measurement_size) + 3, 100);
-		HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_SET);
-
-		msg.mid = rxmsg[3];
-		msg.len = rxmsg[4];
-		msg.data = &rxmsg[5];
-
-		mti_handle_message(&msg);
-
-	  free(rxmsg);
   /* USER CODE END EXTI4_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
   /* USER CODE BEGIN EXTI4_IRQn 1 */

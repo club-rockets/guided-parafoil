@@ -89,32 +89,32 @@ void SD_Save_Data(char *_Save_String)
   f_puts(Save_String, &data_file);
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-
-  uint8_t Save_String[512];
-
-  //HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
-  //recall all init process
-  //pretty slow, but works quite well
-
-  if (BSP_SD_Init() == 0) {
-    f_mount(&fs, (TCHAR const*) SD_Path, 1);
-    f_open(&data_file, FILENAME, FA_OPEN_ALWAYS | FA_WRITE);
-    f_lseek(&data_file, f_size(&data_file));
-
-    //Log file header
-    strcpy((char*) Save_String, DATA_LOG_HEADER);
-    f_puts((char*) Save_String, &data_file);
-
-    //column title
-    strcpy((char*) Save_String, DATA_LOG_COL_NAME);
-    f_puts((char*) Save_String, &data_file);
-
-    //write file to sd
-    f_close(&data_file);
-  }
-
-}
+//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+//
+//  uint8_t Save_String[512];
+//
+//  //HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
+//  //recall all init process
+//  //pretty slow, but works quite well
+//
+//  if (BSP_SD_Init() == 0) {
+//    f_mount(&fs, (TCHAR const*) SD_Path, 1);
+//    f_open(&data_file, FILENAME, FA_OPEN_ALWAYS | FA_WRITE);
+//    f_lseek(&data_file, f_size(&data_file));
+//
+//    //Log file header
+//    strcpy((char*) Save_String, DATA_LOG_HEADER);
+//    f_puts((char*) Save_String, &data_file);
+//
+//    //column title
+//    strcpy((char*) Save_String, DATA_LOG_COL_NAME);
+//    f_puts((char*) Save_String, &data_file);
+//
+//    //write file to sd
+//    f_close(&data_file);
+//  }
+//
+//}
 
 void log_message(char *str){
 //  char buff[strlen(str)+3];
