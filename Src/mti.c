@@ -8,17 +8,17 @@
 #include "stm32f4xx_hal_spi.h"
 #include "stm32f4xx_hal_tim.h"
 
-#include "stm32f4xx_it.h"
 #include "SD_save.h"
 #include "main.h"
 #include "serial_com.h"
+#include "stm32f4xx_it.h"
 
 // External variables
 extern SPI_HandleTypeDef hspi1;
 
 /* XBus Messages */
 static const uint8_t MSG_WAKEUP_ACK[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x3F, 0x00, 0xC2 };
-static const uint8_t MSG_SET_SYNC_SETTINGS[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x2C, 0x0C, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xBB};
+static const uint8_t MSG_SET_SYNC_SETTINGS[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x2C, 0x0C, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xBB };
 static const uint8_t MSG_GOTO_MEASUREMENT[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x10, 0x00, 0xF1 };
 
 static const uint8_t MSG_SET_OUTPUT_CONFIGURATION[] = {
@@ -39,6 +39,13 @@ static const uint8_t MSG_SET_OUTPUT_CONFIGURATION[] = {
 	0xF5 // Checksum
 };
 
+// Static variables
+static uint8_t rxmsg[256] = { 0 };
+static uint8_t txmsg[256] = { 0 };
+
+// Utility functions
+
+/* Get current microsecond */
 static uint32_t get_us(void)
 {
 	uint32_t usTicks = HAL_RCC_GetSysClockFreq() / 1000000;
@@ -50,6 +57,7 @@ static uint32_t get_us(void)
 	return (ms * 1000) + (usTicks * 1000 - cycle_cnt) / usTicks;
 }
 
+/* Delay for microseconds */
 static void delay_us(uint16_t micros)
 {
 	uint32_t start = get_us();
@@ -58,6 +66,7 @@ static void delay_us(uint16_t micros)
 	}
 }
 
+/* Calculate checksum for a given mti mesage */
 uint8_t mti_checksum(uint8_t* message, uint8_t len)
 {
 	uint8_t sum = 0xFF;
@@ -68,6 +77,7 @@ uint8_t mti_checksum(uint8_t* message, uint8_t len)
 	return ((uint8_t)~sum) + 1;
 }
 
+/* Send a message to the MTi over SPI */
 void mti_send_message(const uint8_t* msg)
 {
 	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
@@ -75,12 +85,51 @@ void mti_send_message(const uint8_t* msg)
 	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_SET);
 }
 
+/* Receive a message from the MTi, over SPI */
+void mti_receive_message()
+{
+	uint8_t rxPipeBuf[8] = { 0 };
+	uint16_t notification_size = 0, measurement_size = 0;
+	MTiMsg msg;
+
+	// Set the pipe
+	txmsg[0] = 0x04;
+
+	// Read message size
+	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
+	HAL_SPI_TransmitReceive(&hspi1, txmsg, rxPipeBuf, 8, 100);
+	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_SET);
+
+	// Figure out whether message is notification or measurement based
+	// on size information.
+	notification_size = (rxPipeBuf[4] | rxPipeBuf[5] << 8);
+	measurement_size = (rxPipeBuf[6] | rxPipeBuf[7] << 8);
+	txmsg[0] = (notification_size != 0 ? 0x05 : 0x06);
+
+	// Read message
+	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
+	HAL_SPI_TransmitReceive(&hspi1, txmsg, rxmsg, (notification_size != 0 ? notification_size : measurement_size) + 3, 100);
+	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_SET);
+
+	// Call function to handle message
+	msg.mid = rxmsg[3];
+	msg.len = rxmsg[4];
+
+	if (msg.len != 0)
+		msg.data = &rxmsg[5];
+	else
+		msg.data = NULL;
+
+	mti_handle_message(&msg);
+}
+
+/* Handle a received message */
 void mti_handle_message(MTiMsg* msg)
 {
 	switch (msg->mid) {
 	case MID_WAKEUP:
 		mti_send_message(MSG_WAKEUP_ACK);
-		delay_us(100);
+		delay_us(10);
 		mti_send_message(MSG_SET_OUTPUT_CONFIGURATION);
 		//Send_serial_message("WAKEUP ACK, SET_OUTPUT\n\r");
 		break;
@@ -102,34 +151,34 @@ void mti_handle_message(MTiMsg* msg)
 		//Send_serial_message("SET_SYNC_ACK, GOTO_MEASUREMENT\n\r");
 		break;
 
-	case MID_REQ_DATA_ACK:
-		break;
-
 	case MID_GOTO_MEASUREMENT_ACK:
 		//Send_serial_message("GOTO_MEASUREMENT_ACK\n\r");
 		break;
 
 	default:
 		HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_RESET);
-		char errcode[10] = {0};
-		sprintf(errcode, "ERR : %02x", msg->mid);
-		//Send_serial_message(errcode);
+		char errcode[32] = { 0 };
+		sprintf(errcode, "MTi is Kaput : %02x", msg->mid);
 		break;
 	}
 }
 
+/* Handle a MTData 2 message */
 void mti_handle_mtdata2(MTiMsg* msg)
 {
 	uint8_t* data = msg->data;
+
 	char str[512] = { 0 };
 
 	uint8_t data_count = 0;
 	uint16_t dataid = 0;
 	uint32_t compound = 0;
 
-	strcat(str, "MTi_DATA,");
+	if (msg->data == NULL)
+		return; // ABANDON THREAD!
 
 	// Convert to CSV
+	strcat(str, "MTi_DATA,");
 	for (uint8_t i = 0; i < msg->len; i++) {
 		dataid = (data[i] << 8) | data[i + 1];
 
@@ -169,6 +218,4 @@ void mti_handle_mtdata2(MTiMsg* msg)
 
 	//write to sd card
 	SD_Save_Data(str);
-	//Send_serial_message(str);
-	//Send_serial_message("\n\r");
 }
