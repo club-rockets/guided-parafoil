@@ -67,12 +67,12 @@ static void delay_us(uint16_t micros)
 }
 
 /* Calculate checksum for a given mti mesage */
-uint8_t mti_checksum(uint8_t* message, uint8_t len)
+uint8_t mti_checksum(MTiMsg* msg)
 {
-	uint8_t sum = 0xFF;
+	uint8_t sum = 0xFF + msg->mid + msg->len;
 
-	for (uint8_t i = 0; i < len; i++)
-		sum += message[i];
+	for (uint8_t i = 0; i < msg->len; i++)
+		sum += msg->data[i];
 
 	return ((uint8_t)~sum) + 1;
 }
