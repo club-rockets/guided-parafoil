@@ -68,6 +68,7 @@ void MX_CAN2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 HAL_StatusTypeDef CANBUS_LaunchDataRead(void);
+HAL_StatusTypeDef Send_CAN_Message(uint8_t _data[8], uint32_t _StdId);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

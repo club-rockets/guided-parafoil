@@ -50,7 +50,7 @@ void Motor_Init(){
   MotorLeft_PosCmd = 0;
   MotorRight_PosCmd = 0;
 
-  MotorEnabled = 0;
+  MotorEnabled = 1;
 
   __HAL_TIM_SetCounter(&htim2, 25000);
   __HAL_TIM_SetCounter(&htim5, 25000);
@@ -94,8 +94,8 @@ void MotorCMD_Loop() {
 
 
   /*  Motor command */
-  //if (MotorEnabled != 0)
-  //{
+  if (MotorEnabled != 0)
+  {
 
     //Calculation of the motor axial position error
     MotorLeft_PosErr = MotorLeft_PosCmd - MotorLeftPos;
@@ -169,7 +169,7 @@ void MotorCMD_Loop() {
     previous_MotorRight_SpeedErr = MotorRight_SpeedErr;
     previous_MotorLeft_Cmd = MotorLeft_Cmd;
     previous_MotorRight_Cmd = MotorRight_Cmd;
-  //}
+  }
 
   /***************************************************
    * SD save in buffer

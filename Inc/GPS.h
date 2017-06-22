@@ -54,6 +54,7 @@
 /* USER CODE BEGIN Includes */
 #include "usart.h"
 #include "SD_save.h"
+#include "can.h"
 
 #define BUFFER_SIZE 250
 
@@ -78,23 +79,23 @@
 /*                              Type  Prototype                               */
 /******************************************************************************/
 
+typedef struct vector_2D_s {
+	float X;
+	float Y;
+} vector_2D_t;
+
 typedef struct PolarCoordinate_s {
 	float latitude;
 	float longitude;
 } PolarCoordinate_t;
-
-typedef struct CartesianCoordinate_s {
-	float X;
-	float Y;
-} CartesianCoordinate_t;
 
 typedef struct GPS_Data_s {
 	uint8_t GPS_Number;
 	int32_t rawlatitude;
 	int32_t rawlongitude;
 	PolarCoordinate_t PolarCoordinate;
-	CartesianCoordinate_t CartesianCoordinate;
-	float altitude;
+	vector_2D_t CartesianCoordinate;
+	int32_t altitude;
 	uint8_t fix_type;
 	uint8_t N_satellites;
 	int32_t ground_speed;

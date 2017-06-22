@@ -31,7 +31,7 @@ void GPS_Init() {
 	__HAL_UART_ENABLE_IT(&huart6, UART_IT_RXNE);
 
 	HAL_GPIO_WritePin(GPS_D_SEL_GPIO_Port, GPS_D_SEL_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPS_RESET_GPIO_Port, GPS_RESET_Pin, GPIO_PIN_RESET);
 }
 
 void GPS_Read_Data() {
@@ -70,10 +70,10 @@ void GPS_Read_Data() {
 	 0x05 = Time only fix
 	 0x06..0xff: reserved
 	 */
-	sprintf((char*) (Save_String), "%s,%i,%f,%f,%f", "GPS_Data",
-			GPS2_Parser.GPS_Data.fix_type, GPS2_Parser.GPS_Data.altitude,
-			GPS2_Parser.GPS_Data.PolarCoordinate.latitude, GPS2_Parser.GPS_Data.PolarCoordinate.longitude);
-	SD_Save_Data(Save_String);
+//	sprintf((char*) (Save_String), "%s,%i,%f,%f,%f", "GPS_Data",
+//			GPS2_Parser.GPS_Data.fix_type, GPS2_Parser.GPS_Data.altitude,
+//			GPS2_Parser.GPS_Data.PolarCoordinate.latitude, GPS2_Parser.GPS_Data.PolarCoordinate.longitude);
+//	SD_Save_Data(Save_String);
 
 }
 
@@ -108,6 +108,31 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 
 			_UBX_Parser->GPS_Data.CartesianCoordinate.X = (_UBX_Parser->GPS_Data.PolarCoordinate.longitude - PolarGPS_Destination.longitude) * LON_DEGREEVALUE;
 			_UBX_Parser->GPS_Data.CartesianCoordinate.Y = (_UBX_Parser->GPS_Data.PolarCoordinate.latitude - PolarGPS_Destination.latitude) * LAT_DEGREEVALUE;
+
+			uint8_t Data[8];
+
+			Data[0] = _UBX_Parser->GPS_frame[30];//longitude
+			Data[1] = _UBX_Parser->GPS_frame[31];
+			Data[2] = _UBX_Parser->GPS_frame[32];
+			Data[3] = _UBX_Parser->GPS_frame[33];
+			Data[4] = _UBX_Parser->GPS_frame[34];//latitude
+			Data[5] = _UBX_Parser->GPS_frame[35];
+			Data[6] = _UBX_Parser->GPS_frame[36];
+			Data[7] = _UBX_Parser->GPS_frame[37];
+			Send_CAN_Message(Data, 2);
+
+			Data[0] = _UBX_Parser->GPS_Data.GPS_Number;
+			Data[1] = _UBX_Parser->GPS_Data.fix_type;
+			Data[2] = _UBX_Parser->GPS_Data.N_satellites;
+			Data[3] = _UBX_Parser->GPS_Data.altitude;
+			Data[4] = _UBX_Parser->GPS_frame[66];//ground speed (mm)
+			Data[5] = _UBX_Parser->GPS_frame[67];
+			Data[6] = _UBX_Parser->GPS_frame[68];
+			Data[7] = _UBX_Parser->GPS_frame[69];
+			Send_CAN_Message(Data, 3);
+
+			HAL_CAN_Transmit(&hcan2, 5);
+
 		}
 	}
 
@@ -151,7 +176,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 	//GPS1 UBX frame caption
 	if (huart->Instance == USART2) {
-		//HAL_GPIO_TogglePin(GPIOD, LED1_Pin);
+		HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
 		memcpy(GPS1_Parser.GPS_frame, usart2_rx, sizeof(usart2_rx));
 		GPS1_Parser.GPS_FrameRdy = 1;
 

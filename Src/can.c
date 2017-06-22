@@ -148,6 +148,20 @@ HAL_StatusTypeDef CANBUS_LaunchDataRead(void)
 
   return res;
 }
+
+HAL_StatusTypeDef Send_CAN_Message(uint8_t _data[8], uint32_t _StdId)
+{
+	hcan2.pTxMsg->Data[0] = _data[0];
+	hcan2.pTxMsg->Data[1] = _data[1];
+	hcan2.pTxMsg->Data[2] = _data[2];
+	hcan2.pTxMsg->Data[3] = _data[3];
+	hcan2.pTxMsg->Data[4] = _data[4];
+	hcan2.pTxMsg->Data[5] = _data[5];
+	hcan2.pTxMsg->Data[6] = _data[6];
+	hcan2.pTxMsg->Data[7] = _data[7];
+	hcan2.pTxMsg->StdId = _StdId;
+	hcan2.pTxMsg->DLC = 2;
+}
 /* USER CODE END 1 */
 
 /**

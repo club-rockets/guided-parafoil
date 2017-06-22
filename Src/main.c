@@ -109,10 +109,6 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
-	int i = 0;
-	uint8_t Save_String[512];
-	uint8_t buffer[64];
-	uint8_t data[100] = { 0 };
 
   /* USER CODE END 1 */
 
@@ -202,6 +198,13 @@ int main(void)
 	polar_dest.longitude = -106.763651;
 
 	Set_GPSDestination(polar_dest);
+
+	vector_2D_t uWindVector;
+
+	uWindVector.X = 1.0;
+	uWindVector.Y = 0.0;
+
+	Set_uWindVector(uWindVector);
 
 
 	CalibrateMotor();
@@ -334,11 +337,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		MotorCMD_Loop();
 
-		if (!(modulo % 20)) {
-			SGP_Control_Loop();
-		}
 		if (!(modulo % 4)) {
 			GPS_Read_Data();
+		}
+
+		if (!(modulo % 4)) {
+			GPS_Read_Data();
+		}
+
+		if (!(modulo % 20)) {
+			SGP_Control_Loop();
 		}
 
 		modulo++;
@@ -368,7 +376,7 @@ void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
 			Set_RocketState(message[0]);
 		}
 
-		Send_serial_message(message);
+		//Send_serial_message(message);
 
 		__HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
 	}
