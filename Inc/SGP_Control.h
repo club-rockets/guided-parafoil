@@ -18,12 +18,14 @@
 #include "math.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_it.h"
+#include "stdlib.h"
 
 #include "rtc.h"
 #include "tim.h"
 #include "SD_save.h"
 #include "motorcmd.h"
 #include "GPS.h"
+#include "can.h"
 
 #define D1 150
 #define D2 150
@@ -36,22 +38,6 @@
 /******************************************************************************/
 /*                              Type  Prototype                               */
 /******************************************************************************/
-typedef enum Rocket_State_m {
-  INITIALISATION = 0,
-  STANDBY_ON_PAD,
-  LAUNCH,
-  POWERED_ASCENT,
-  ENGINE_BURNOUT,
-  COASTING_ASCENT,
-  APOGEE_REACHED,
-  DROGUE_DEPLOYMENT,
-  DROGUE_DESCENT,
-  MAIN_DEPLOYMENT,
-  MAIN_DESCENT,
-  LANDING,
-  RECOVERY,
-  PICKEDUP
-} Rocket_State_t;
 
 typedef enum SGP_Control_State_m {
   SGP_INIT = 0,
@@ -62,6 +48,7 @@ typedef enum SGP_Control_State_m {
   DISTANCE_PHASE,
   INIT_DIRECT_APPROACH_PHASE,
   DIRECT_APPROACH_PHASE,
+  INIT_LANDING_PHASE,
   LANDING_PHASE,
   ON_THE_GROUND_PHASE,
   MOTOR_TEST
@@ -85,7 +72,9 @@ typedef struct SGP_Data_s {
 	vector_2D_t uCurrentDir;
 	vector_2D_t uWind;
 	float Altitude;
+	float oldAltitude;
 	float HorzSpeed;
+	float VertSpeed;
 	float DescentTime;
 	float PosTTracking;
 	uint8_t ControlEnable;
@@ -105,6 +94,7 @@ void SGP_Control_Loop();
 uint8_t Launch_MotorTest();
 void Set_uWindVector(vector_2D_t _uWind);
 void Set_RocketState(Rocket_State_t _Rocket_State);
+void Set_Altitude(float _altitude);
 Rocket_State_t Get_RocketState(void);
 
 #endif /* SGP_CONTROL_H_ */

@@ -54,7 +54,7 @@
 /* USER CODE BEGIN Includes */
 #include "usart.h"
 #include "SD_save.h"
-#include "can.h"
+//#include "can.h"
 
 #define BUFFER_SIZE 250
 

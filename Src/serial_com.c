@@ -164,7 +164,6 @@ void serial_menu() {
 
 		if (USB_CDC_RX[0] == 'c') {
 
-			uint8_t res = 0;
 			hcan2.pTxMsg->Data[0] = 'a';
 			hcan2.pTxMsg->Data[1] = 'b';
 			hcan2.pTxMsg->Data[2] = 'c';
@@ -173,7 +172,7 @@ void serial_menu() {
 			hcan2.pTxMsg->StdId = 0x001;
 			hcan2.pTxMsg->DLC = 2;
 
-			res = HAL_CAN_Transmit(&hcan2, 5);
+			HAL_CAN_Transmit(&hcan2, 5);
 
 			sprintf(USB_CDC_TX, "CAN TEST: %i\n\r", Get_RocketState());
 			CDC_Transmit_FS(USB_CDC_TX, strlen(USB_CDC_TX));

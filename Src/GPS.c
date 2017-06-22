@@ -1,4 +1,5 @@
 #include "GPS.h"
+#include "can.h"
 
 typedef struct UBX_Parser_s {
 	uint8_t GPS_frame[GPS_FRAME_LENGTH]; //USART2 Buffer
@@ -27,7 +28,8 @@ void GPS_Init() {
 	PolarGPS_Destination.latitude = 0.0;
 	PolarGPS_Destination.longitude = 0.0;
 
-	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
+	//TODO: debug the ublox module on board
+	//__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
 	__HAL_UART_ENABLE_IT(&huart6, UART_IT_RXNE);
 
 	HAL_GPIO_WritePin(GPS_D_SEL_GPIO_Port, GPS_D_SEL_Pin, GPIO_PIN_SET);
@@ -37,14 +39,15 @@ void GPS_Init() {
 void GPS_Read_Data() {
 
 	/* SD card  */
-	uint8_t Save_String[512];                  //SD card write buffer
+	//uint8_t Save_String[512];                  //SD card write buffer
 
+	//TODO Debug Ublox module on board USART2 port
 	//GPS1 Frame parse launcher
-	if (GPS1_Parser.GPS_FrameRdy != 0) {
-
-		parse_UBX_char(&GPS1_Parser);
-
-	}
+//	if (GPS1_Parser.GPS_FrameRdy != 0) {
+//
+//		parse_UBX_char(&GPS1_Parser);
+//
+//	}
 
 	//GPS1 Frame parse launcher
 	if (GPS2_Parser.GPS_FrameRdy != 0) {
@@ -97,11 +100,13 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 			_UBX_Parser->GPS_Data.fix_type = _UBX_Parser->GPS_frame[26];
 			_UBX_Parser->GPS_Data.N_satellites = _UBX_Parser->GPS_frame[29];
 
+			_UBX_Parser->GPS_Data.rawlongitude = _UBX_Parser->GPS_frame[30] | (_UBX_Parser->GPS_frame[31] << 8) | (_UBX_Parser->GPS_frame[32] << 16) | (_UBX_Parser->GPS_frame[33] << 24);
+			_UBX_Parser->GPS_Data.PolarCoordinate.longitude = _UBX_Parser->GPS_Data.rawlongitude / 10000000.0;
+
 			_UBX_Parser->GPS_Data.rawlatitude = _UBX_Parser->GPS_frame[34] | (_UBX_Parser->GPS_frame[35] << 8) | (_UBX_Parser->GPS_frame[36] << 16) | (_UBX_Parser->GPS_frame[37] << 24);
 			_UBX_Parser->GPS_Data.PolarCoordinate.latitude = _UBX_Parser->GPS_Data.rawlatitude / 10000000.0;
 
-			_UBX_Parser->GPS_Data.rawlongitude = _UBX_Parser->GPS_frame[30] | (_UBX_Parser->GPS_frame[31] << 8) | (_UBX_Parser->GPS_frame[32] << 16) | (_UBX_Parser->GPS_frame[33] << 24);
-			_UBX_Parser->GPS_Data.PolarCoordinate.longitude = _UBX_Parser->GPS_Data.rawlongitude / 10000000.0;
+			_UBX_Parser->GPS_Data.altitude = _UBX_Parser->GPS_frame[38] | (_UBX_Parser->GPS_frame[39] << 8) | (_UBX_Parser->GPS_frame[40] << 16) | (_UBX_Parser->GPS_frame[41] << 24);
 
 			_UBX_Parser->GPS_Data.ground_speed = _UBX_Parser->GPS_frame[66] | (_UBX_Parser->GPS_frame[67] << 8) | (_UBX_Parser->GPS_frame[68] << 16) | (_UBX_Parser->GPS_frame[69] << 24);
 			_UBX_Parser->GPS_Data.heading_motion = _UBX_Parser->GPS_frame[70] | (_UBX_Parser->GPS_frame[71] << 8) | (_UBX_Parser->GPS_frame[72] << 16) | (_UBX_Parser->GPS_frame[73] << 24);
@@ -111,25 +116,20 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 
 			uint8_t Data[8];
 
-			Data[0] = _UBX_Parser->GPS_frame[30];//longitude
-			Data[1] = _UBX_Parser->GPS_frame[31];
-			Data[2] = _UBX_Parser->GPS_frame[32];
-			Data[3] = _UBX_Parser->GPS_frame[33];
-			Data[4] = _UBX_Parser->GPS_frame[34];//latitude
-			Data[5] = _UBX_Parser->GPS_frame[35];
-			Data[6] = _UBX_Parser->GPS_frame[36];
-			Data[7] = _UBX_Parser->GPS_frame[37];
-			Send_CAN_Message(Data, 2);
+//			memcpy(&Data, _UBX_Parser->GPS_Data.PolarCoordinate.longitude, sizeof(Data));
+//			Send_CAN_Message(Data, CAN_GPS_LONGITUDE_ID);
+//
+//			memcpy(&Data, _UBX_Parser->GPS_Data.PolarCoordinate.latitude, sizeof(Data));
+//			Send_CAN_Message(Data, CAN_GPS_LATITUDE_ID);
 
-			Data[0] = _UBX_Parser->GPS_Data.GPS_Number;
-			Data[1] = _UBX_Parser->GPS_Data.fix_type;
-			Data[2] = _UBX_Parser->GPS_Data.N_satellites;
-			Data[3] = _UBX_Parser->GPS_Data.altitude;
-			Data[4] = _UBX_Parser->GPS_frame[66];//ground speed (mm)
-			Data[5] = _UBX_Parser->GPS_frame[67];
-			Data[6] = _UBX_Parser->GPS_frame[68];
-			Data[7] = _UBX_Parser->GPS_frame[69];
-			Send_CAN_Message(Data, 3);
+			memcpy(Data, &_UBX_Parser->GPS_Data.altitude, sizeof(uint32_t));
+			Send_CAN_Message(Data, CAN_GPS_ALTITUDE_ID);
+
+			memcpy(Data, &_UBX_Parser->GPS_Data.fix_type, sizeof(uint8_t));
+			Send_CAN_Message(Data, CAN_GPS_FIX_TYPE_ID);
+
+			memcpy(Data, &_UBX_Parser->GPS_Data.N_satellites, sizeof(uint8_t));
+			Send_CAN_Message(Data, CAN_GPS_N_SATELLITE_ID);
 
 			HAL_CAN_Transmit(&hcan2, 5);
 

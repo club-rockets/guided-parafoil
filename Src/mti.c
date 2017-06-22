@@ -106,6 +106,8 @@ void mti_receive_message()
 	measurement_size = (rxPipeBuf[6] | rxPipeBuf[7] << 8);
 	txmsg[0] = (notification_size != 0 ? 0x05 : 0x06);
 
+	delay_us(10);
+
 	// Read message
 	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
 	HAL_SPI_TransmitReceive(&hspi1, txmsg, rxmsg, (notification_size != 0 ? notification_size : measurement_size) + 3, 100);

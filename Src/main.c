@@ -206,8 +206,6 @@ int main(void)
 
 	Set_uWindVector(uWindVector);
 
-
-	CalibrateMotor();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -331,25 +329,27 @@ static void MX_NVIC_Init(void)
 //TIMER
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
-	static int modulo = 0;
+	static int tim3Counter = 1;
 
 	if (htim->Instance == TIM3) {
 
 		MotorCMD_Loop();
 
-		if (!(modulo % 4)) {
+		if (!(tim3Counter % 4)) {
 			GPS_Read_Data();
 		}
 
-		if (!(modulo % 4)) {
-			GPS_Read_Data();
+		if (tim3Counter == 19) {
+			CANBUS_LaunchDataRead();
 		}
 
-		if (!(modulo % 20)) {
+		if (tim3Counter == 20) {
 			SGP_Control_Loop();
 		}
 
-		modulo++;
+		tim3Counter++;
+		if (tim3Counter > 20)
+			tim3Counter = 1;
 	}
 
 //  if (htim->Instance == TIM4)
@@ -363,32 +363,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 }
 
-//CAN
-void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
-
-	if (hcan->Instance == CAN2) {
-
-		char message[8] = { 0 };
-
-		memcpy(message, hcan->pRxMsg->Data, sizeof(Rocket_State_t));
-
-		if (hcan->pRxMsg->StdId == 0x11) {
-			Set_RocketState(message[0]);
-		}
-
-		//Send_serial_message(message);
-
-		__HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
-	}
-
-}
-
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 	if (GPIO_Pin == SD_DETECT_Pin) {
 	  uint8_t Save_String[512];
 
-	  //HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
+
 	  //recall all init process
 	  //pretty slow, but works quite well
 
@@ -411,6 +391,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	}
 	//else if (GPIO_Pin == GPIO_PIN_4) {
 	else if (0) {
+		//HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
 		mti_receive_message();
 	}
 

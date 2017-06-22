@@ -53,12 +53,50 @@
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "SGP_Control.h"
 /* USER CODE END Includes */
 
 extern CAN_HandleTypeDef hcan2;
 
 /* USER CODE BEGIN Private defines */
+
+//sent by SGP
+#define CAN_ROCKET_STATE_REQ_ID      0x001
+#define CAN_ROCKET_ALTITUDE_REQ_ID   0x002
+
+//sent to SGP
+#define CAN_ROCKET_STATE_ID       	0x011
+#define CAN_ROCKET_ALTITUDE_ID      0x012
+
+#define CAN_GPS_LONGITUDE_ID      	0x211
+#define CAN_GPS_LATITUDE_ID       	0x212
+#define CAN_GPS_ALTITUDE_ID      	0x213
+#define CAN_GPS_FIX_TYPE_ID       	0x214
+#define CAN_GPS_N_SATELLITE_ID    	0x215
+
+#define CAN_ACCELERATION_X_ID 	  	0x221
+#define CAN_ACCELERATION_Y_ID     	0x222
+#define CAN_ACCELERATION_Z_ID     	0x223
+
+#define CAN_GYRO_YIELD_ID         	0x231
+#define CAN_GYRO_YAW_ID           	0x232
+#define CAN_GYRO_ROLL_ID          	0x233
+
+#define CAN_SGP_STATE				0x300
+#define CAN_SGP_DESCENTTIME			0x301
+#define CAN_SGP_HORZSPEED			0x302
+#define CAN_SGP_VERTSPEED			0x303
+#define CAN_SGP_POSTTRACKING		0x304
+
+#define CAN_BEZIER_TIP_X			0x310
+#define CAN_BEZIER_TIP_Y			0x311
+#define CAN_BEZIER_FAP_X			0x312
+#define CAN_BEZIER_FAP_Y			0x313
+#define CAN_BEZIER_CP1_X			0x314
+#define CAN_BEZIER_CP1_Y			0x315
+#define CAN_BEZIER_CP2_X			0x316
+#define CAN_BEZIER_CP2_Y			0x317
+
 
 /* USER CODE END Private defines */
 

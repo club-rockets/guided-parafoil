@@ -19,15 +19,15 @@
 /*                             Function prototype                             */
 /******************************************************************************/
 void Calculate_BiezerCoef(Bezier_curve_t *_BiezerData);
+float Evaluate_VertSpeed(float _diff_altitude, float _diff_time);
+float Evaluate_HorzSpeed(float _dist_traveled, float _diff_time);
+void Save_BezierData(Bezier_curve_t *_BezierData);
 
 /******************************************************************************/
 /*                             Global variable                                */
 /******************************************************************************/
 
 Rocket_State_t Rocket_State = INITIALISATION;
-
-PolarCoordinate_t PolarGPS_Position = {.longitude = 0.0, .latitude = 0.0 };
-//uint8_t DestinationSet = 0;
 
 //Motor test variable
 uint8_t motor_testCounter = 0;
@@ -52,10 +52,11 @@ void SGP_Control_Init() {
 
 void SGP_Control_Loop() {
 	// buffer pour sauvegarder des donnees
-	uint8_t Save_String[512];
+	//uint8_t Save_String[512];
 
 	//Path planning variable
 	float DestDist = 0.0, LoopDist = 0.0, fapDist = 0.0, h = 0.0;
+	float Dist_traveled = 0.0, Height_loss = 0.0;
 	vector_2D_t uHDirection, ufapDir, uMidDir;
 	vector_2D_t InitialPnt;
 
@@ -75,19 +76,25 @@ void SGP_Control_Loop() {
 	SGP_Data.oldGPS_data = SGP_Data.GPS_data;
 	SGP_Data.GPS_data = *GPS_GetData();
 
+	//Horizontal parameters calculation
+	//uCurrentDir not unit vector
 	SGP_Data.uCurrentDir.X = SGP_Data.GPS_data.CartesianCoordinate.X - SGP_Data.oldGPS_data.CartesianCoordinate.X;
 	SGP_Data.uCurrentDir.Y = SGP_Data.GPS_data.CartesianCoordinate.Y - SGP_Data.oldGPS_data.CartesianCoordinate.Y;
 
-	SGP_Data.HorzSpeed = sqrt(pow((SGP_Data.uCurrentDir.X), 2) + pow((SGP_Data.uCurrentDir.Y), 2));
+	Dist_traveled = sqrt(pow((SGP_Data.uCurrentDir.X), 2) + pow((SGP_Data.uCurrentDir.Y), 2));
+	SGP_Data.HorzSpeed = Evaluate_HorzSpeed(Dist_traveled, 1.0);
 
+	//Now uCurrentDir is a unit vector
 	SGP_Data.uCurrentDir.X = SGP_Data.uCurrentDir.X / SGP_Data.HorzSpeed;
 	SGP_Data.uCurrentDir.Y = SGP_Data.uCurrentDir.Y / SGP_Data.HorzSpeed;
 
-	//TODO
-	//SGP_Data.DescentTime =
+	//Vertical parameters calculation
+	Height_loss = SGP_Data.Altitude - SGP_Data.oldAltitude;
+	SGP_Data.VertSpeed = Evaluate_VertSpeed(Height_loss, 1.0);
 
+	SGP_Data.DescentTime = abs(SGP_Data.Altitude / SGP_Data.VertSpeed);
 
-	/* SGP Control system state */
+	/* SGP Control system state machine */
 	switch (SGP_Data.SGP_State) {
 
 	case SGP_INIT:
@@ -101,6 +108,8 @@ void SGP_Control_Loop() {
 
 	case INIT_CALIBRATION_PHASE:
 
+		CalibrateMotor();
+
 		//Set a straight line trajectory
 		SGP_Data.bezier_data.tip = SGP_Data.GPS_data.CartesianCoordinate;
 		SGP_Data.bezier_data.cp1 = SGP_Data.bezier_data.tip;
@@ -109,7 +118,11 @@ void SGP_Control_Loop() {
 		SGP_Data.bezier_data.fap.Y = 1000 * SGP_Data.uCurrentDir.Y + SGP_Data.bezier_data.tip.Y;
 		SGP_Data.bezier_data.cp2 = SGP_Data.bezier_data.fap;
 
+		//Save bezier parameter
+		Save_BezierData(&SGP_Data.bezier_data);
+		//Calculate
 		Calculate_BiezerCoef(&SGP_Data.bezier_data);
+
 		SGP_Data.ControlEnable = 1;//Enable position control on parafoil
 
 		time = 0;
@@ -188,7 +201,11 @@ void SGP_Control_Loop() {
 			SGP_Data.bezier_data.cp2.X = SGP_Data.bezier_data.fap.X - D2 * uMidDir.X;
 			SGP_Data.bezier_data.cp2.Y = SGP_Data.bezier_data.fap.Y - D2 * uMidDir.Y;
 
+			//Save bezier parameter
+			Save_BezierData(&SGP_Data.bezier_data);
+			//Calculate
 			Calculate_BiezerCoef(&SGP_Data.bezier_data);
+
 			SGP_Data.ControlEnable = 1;//Enable position control on parafoil
 
 			SGP_Data.SGP_State = DISTANCE_PHASE;
@@ -204,7 +221,11 @@ void SGP_Control_Loop() {
 			SGP_Data.bezier_data.cp2.X = SGP_Data.bezier_data.fap.X - D2 * SGP_Data.uWind.X;
 			SGP_Data.bezier_data.cp2.Y = SGP_Data.bezier_data.fap.Y - D2 * SGP_Data.uWind.Y;
 
+			//Save bezier parameter
+			Save_BezierData(&SGP_Data.bezier_data);
+			//Calculate
 			Calculate_BiezerCoef(&SGP_Data.bezier_data);
+
 			SGP_Data.ControlEnable = 1;//Enable position control on parafoil
 
 			SGP_Data.SGP_State = INIT_DIRECT_APPROACH_PHASE;
@@ -240,6 +261,7 @@ void SGP_Control_Loop() {
 
 		SGP_Data.PosTTracking = 0.0;
 
+		//Bezier point calculation
 		SGP_Data.bezier_data.tip.X = SGP_Data.GPS_data.CartesianCoordinate.X;
 		SGP_Data.bezier_data.tip.Y = SGP_Data.GPS_data.CartesianCoordinate.Y;
 
@@ -252,6 +274,11 @@ void SGP_Control_Loop() {
 		SGP_Data.bezier_data.cp2.X = SGP_Data.bezier_data.fap.X + D2 * SGP_Data.uWind.X;
 		SGP_Data.bezier_data.cp2.Y = SGP_Data.bezier_data.fap.Y + D2 * SGP_Data.uWind.Y;
 
+		//Save bezier parameter
+		Save_BezierData(&SGP_Data.bezier_data);
+		//Calculate
+		Calculate_BiezerCoef(&SGP_Data.bezier_data);
+
 		SGP_Data.SGP_State = DIRECT_APPROACH_PHASE;
 
 		break;
@@ -259,13 +286,23 @@ void SGP_Control_Loop() {
 	case DIRECT_APPROACH_PHASE:
 		if (SGP_Data.Altitude <= 50.0)
 		{
-			time = 0;
-			SGP_Data.SGP_State = LANDING_PHASE;
+			SGP_Data.SGP_State = INIT_LANDING_PHASE;
 		}
 		break;
 
+	case INIT_LANDING_PHASE:
+
+		time = 0;
+		SGP_Data.ControlEnable = 0;
+
+		//Break
+		MotorLeft_PosCmd = 5000;
+		MotorRight_PosCmd = 5000;
+
+		SGP_Data.SGP_State = INIT_LANDING_PHASE;
+		break;
+
 	case LANDING_PHASE:
-		//TODO:Break = 1;
 
 		if (time <=10)
 		{
@@ -281,7 +318,6 @@ void SGP_Control_Loop() {
 	case ON_THE_GROUND_PHASE:
 
 		Disable_MotorCMD();
-		SGP_Data.ControlEnable = 0;
 
 		break;
 
@@ -395,27 +431,25 @@ void SGP_Control_Loop() {
 
 		 Set_Motor_Command(MotorLeft_PosCmd, MotorRight_PosCmd);
 	}
-	 uint8_t Data[8];
 
-	Data[0] = SGP_Data.SGP_State;
-	Data[1] = (uint8_t) SGP_Data.DescentTime;
-	Data[2] = (uint8_t) SGP_Data.HorzSpeed;
-	Data[3] = (uint8_t) (SGP_Data.PosTTracking * 100);
-	Data[4] = SGP_Data.GPS_data.GPS_Number;
-	Data[5] = 0;
-	Data[6] = 0;
-	Data[7] = 0;
-	Send_CAN_Message(Data, 10);
+	//CAN message
+	uint8_t Data[8];
 
-	Data[0] = (uint8_t) SGP_Data.bezier_data.tip.X;
-	Data[1] = (uint8_t) SGP_Data.bezier_data.tip.Y;
-	Data[2] = (uint8_t) SGP_Data.bezier_data.fap.X;
-	Data[3] = (uint8_t) SGP_Data.bezier_data.fap.Y;
-	Data[4] = (uint8_t) SGP_Data.bezier_data.cp1.X;
-	Data[5] = (uint8_t) SGP_Data.bezier_data.cp1.Y;
-	Data[6] = (uint8_t) SGP_Data.bezier_data.cp2.X;
-	Data[7] = (uint8_t) SGP_Data.bezier_data.cp2.Y;
-	Send_CAN_Message(Data, 11);
+	//General algorithme parameter
+	memcpy(Data, &SGP_Data.SGP_State, sizeof(uint8_t[8]));
+	Send_CAN_Message(Data, CAN_SGP_STATE);
+
+	memcpy(Data, &SGP_Data.DescentTime, sizeof(float));
+	Send_CAN_Message(Data, CAN_SGP_DESCENTTIME);
+
+	memcpy(Data, &SGP_Data.HorzSpeed, sizeof(float));
+	Send_CAN_Message(Data, CAN_SGP_HORZSPEED);
+
+	memcpy(Data, &SGP_Data.VertSpeed, sizeof(float));
+	Send_CAN_Message(Data, CAN_SGP_VERTSPEED);
+
+	memcpy(Data, &SGP_Data.PosTTracking, sizeof(float));
+	Send_CAN_Message(Data, CAN_SGP_POSTTRACKING);
 
 	/***************************************************
 	 * SD save in buffer
@@ -444,8 +478,88 @@ void Calculate_BiezerCoef(Bezier_curve_t *_BiezerData)
 	_BiezerData->a.Y = _BiezerData->fap.Y - _BiezerData->tip.Y - _BiezerData->c.Y - _BiezerData->b.Y;
 }
 
+float Evaluate_VertSpeed(float _diff_altitude, float _diff_time)
+{
+	static uint8_t WriteIndex;
+	static float VertSpeed[5];
+
+	int i = 0;
+	float SpeedSum = 0.0;
+
+	VertSpeed[WriteIndex] = _diff_altitude / _diff_time;
+
+	SpeedSum = 0;
+	for (i = 0; i < 5; i++)
+	{
+		SpeedSum = VertSpeed[i];
+	}
+
+	WriteIndex++;
+
+	if (WriteIndex >= 5)
+		WriteIndex = 0;
+
+	return SpeedSum / 5.0;
+}
+
+float Evaluate_HorzSpeed(float _dist_traveled, float _diff_time)
+{
+	static uint8_t WriteIndex;
+	static float HorzSpeed[5];
+
+	int i = 0;
+	float SpeedSum = 0.0;
+
+	HorzSpeed[WriteIndex] = _dist_traveled / _diff_time;
+
+	SpeedSum = 0;
+	for (i = 0; i < 5; i++)
+	{
+		SpeedSum = HorzSpeed[i];
+	}
+
+	WriteIndex++;
+
+	if (WriteIndex >= 5)
+		WriteIndex = 0;
+
+	return SpeedSum / 5.0;
+}
+
+void Save_BezierData(Bezier_curve_t *_BezierData)
+{
+
+	//CAN message
+	uint8_t Data[8];
+
+	//Bezier curve parameter
+	//TIP
+	memcpy(Data, &_BezierData->tip.X, sizeof(float));
+	Send_CAN_Message(Data, CAN_BEZIER_TIP_X);
+	memcpy(Data, &_BezierData->tip.Y, sizeof(float));
+	Send_CAN_Message(Data, CAN_BEZIER_TIP_Y);
+
+	//FAP
+	memcpy(Data, &_BezierData->fap.X, sizeof(float));
+	Send_CAN_Message(Data, CAN_BEZIER_FAP_X);
+	memcpy(Data, &_BezierData->fap.Y, sizeof(float));
+	Send_CAN_Message(Data, CAN_BEZIER_FAP_Y);
+
+	//CP1
+	memcpy(Data, &_BezierData->cp1.X, sizeof(float));
+	Send_CAN_Message(Data, CAN_BEZIER_CP1_X);
+	memcpy(Data, &_BezierData->cp1.Y, sizeof(float));
+	Send_CAN_Message(Data, CAN_BEZIER_CP1_Y);
+
+	//CP2
+	memcpy(Data, &_BezierData->fap.X, sizeof(float));
+	Send_CAN_Message(Data, CAN_BEZIER_CP2_X);
+	memcpy(Data, &_BezierData->fap.Y, sizeof(float));
+	Send_CAN_Message(Data, CAN_BEZIER_CP2_Y);
+}
+
 uint8_t Launch_MotorTest() {
-	if ((Rocket_State == INITIALISATION) || (Rocket_State != STANDBY_ON_PAD)) {
+	if ((Rocket_State == INITIALISATION) || (Rocket_State == STANDBY_ON_PAD)) {
 
 		motor_testCounter = 0;
 		SGP_Data.SGP_State = MOTOR_TEST;
@@ -465,6 +579,14 @@ void Set_uWindVector(vector_2D_t _uWind)
 
 void Set_RocketState(Rocket_State_t _Rocket_State) {
 	Rocket_State = _Rocket_State;
+}
+
+//Set altitude in meters
+void Set_Altitude(float _altitude) {
+
+	SGP_Data.oldAltitude = SGP_Data.Altitude;
+	SGP_Data.Altitude = _altitude;
+
 }
 
 Rocket_State_t Get_RocketState(void) {

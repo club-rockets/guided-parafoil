@@ -139,11 +139,13 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 HAL_StatusTypeDef CANBUS_LaunchDataRead(void)
 {
   HAL_StatusTypeDef res = 0;
-  //hcan2.pTxMsg->Data = Data;
-  hcan2.pTxMsg->StdId = 0x001;
-  hcan2.pTxMsg->DLC = 0;
-  //0x0011 rocketstate
 
+  hcan2.pTxMsg->StdId = CAN_ROCKET_STATE_REQ_ID;
+  hcan2.pTxMsg->DLC = 0;
+  res = HAL_CAN_Transmit(&hcan2, 1);
+
+  hcan2.pTxMsg->StdId = CAN_ROCKET_ALTITUDE_REQ_ID;
+  hcan2.pTxMsg->DLC = 0;
   res = HAL_CAN_Transmit(&hcan2, 1);
 
   return res;
@@ -151,16 +153,33 @@ HAL_StatusTypeDef CANBUS_LaunchDataRead(void)
 
 HAL_StatusTypeDef Send_CAN_Message(uint8_t _data[8], uint32_t _StdId)
 {
-	hcan2.pTxMsg->Data[0] = _data[0];
-	hcan2.pTxMsg->Data[1] = _data[1];
-	hcan2.pTxMsg->Data[2] = _data[2];
-	hcan2.pTxMsg->Data[3] = _data[3];
-	hcan2.pTxMsg->Data[4] = _data[4];
-	hcan2.pTxMsg->Data[5] = _data[5];
-	hcan2.pTxMsg->Data[6] = _data[6];
-	hcan2.pTxMsg->Data[7] = _data[7];
+	memcpy(hcan2.pTxMsg->Data, _data, sizeof(uint8_t[8]));
 	hcan2.pTxMsg->StdId = _StdId;
 	hcan2.pTxMsg->DLC = 2;
+
+	return HAL_CAN_Transmit(&hcan2, 1);
+}
+
+void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
+
+	if (hcan->Instance == CAN2) {
+
+		float *data;
+
+		if (hcan->pRxMsg->StdId == CAN_ROCKET_STATE_ID) {
+			Set_RocketState(hcan->pRxMsg->Data[0]);
+		}
+
+		if (hcan->pRxMsg->StdId == CAN_ROCKET_ALTITUDE_ID) {
+			//TODO: to confirms
+			data = (float*)hcan->pRxMsg->Data;
+			Set_Altitude(*data);
+		}
+
+
+		__HAL_CAN_ENABLE_IT(hcan, CAN_IT_FMP0);
+	}
+
 }
 /* USER CODE END 1 */
 
