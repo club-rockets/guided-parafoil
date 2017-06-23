@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cdtprojectproperties>
+<section name="org.eclipse.cdt.internal.ui.wizards.settingswizards.IncludePaths">
+<language name="S,s,asm">
+<includepath>src</includepath>
+<includepath>Libraries/CMSIS/Include</includepath>
+<includepath>Libraries/Device/STM32F4xx/Include</includepath>
+<includepath>Libraries/STM32F4xx_StdPeriph_Driver/inc</includepath>
+
+</language>
+<language name="C Source File">
+<includepath>src</includepath>
+<includepath workspace_path="true">/guided-parafoil/Inc</includepath>
+
+</language>
+<language name="Object File">
+
+</language>
+</section>
+<section name="org.eclipse.cdt.internal.ui.wizards.settingswizards.Macros">
+<language name="S,s,asm">
+<macro>
+<name>STM32F4XX</name><value/>
+</macro>
+<macro>
+<name>STM32F40XX</name><value/>
+</macro>
+<macro>
+<name>USE_STDPERIPH_DRIVER</name><value/>
+</macro>
+
+</language>
+<language name="C Source File">
+<macro>
+<name>STM32F4XX</name><value/>
+</macro>
+<macro>
+<name>STM32F40XX</name><value/>
+</macro>
+<macro>
+<name>USE_STDPERIPH_DRIVER</name><value/>
+</macro>
+
+</language>
+<language name="Object File">
+
+</language>
+</section>
+</cdtprojectproperties>

@@ -11,45 +11,31 @@
  Ecole de Technologies Superieures
  *********************************************************************************************/
 
-#ifndef MOTORCMD_H_
-#define MOTORCMD_H_
+#ifndef SD_SAVE_H_
+#define SD_SAVE_H_
 
 #include "string.h"
+#include "math.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_it.h"
-#include "stm32f4xx_hal_tim.h"
 
-#include "tim.h"
+#include "fatfs.h"
+#include "sdio.h"
 #include "rtc.h"
-#include "SD_save.h"
-#include "can.h"
 
 /******************************************************************************/
 /*                                Define                                      */
 /******************************************************************************/
-#define PGAIN             4
-#define POS_TOLERANCE     10// +/- 10LSB
-#define CMD_STATURATION   12// +/- 12V
-
-#define LEFT_CABLE_LENGTH  61
-#define RIGHT_CABLE_LENGTH 63
-#define CM_TO_RAD          140
-
+#define FILENAME "SGP.csv"//Must be less than 8 characters!!!
+#define DATA_LOG_COL_NAME "RTC Time,Mission Time (ms)\n"
+#define DATA_LOG_HEADER "\nRockETS Data Logger Version 2.0\n"
 
 /******************************************************************************/
 /*                             Function prototype                             */
 /******************************************************************************/
-void Motor_Init();
-void MotorCMD_Loop();
-int Get_LeftMotor_command();
-int Get_RightMotor_command();
-float Get_LeftMotor_position();
-float Get_RightMotor_position();
-void Set_Motor_Command(int _MotorLeft_PosCmd, int _MotorRight_PosCmd);
-void config_Motor_Command(int _MotorLeft_ConfCmd, int _MotorRight_ConfCmd);
-void MotorPos_Reset();
-void Enable_MotorCMD();
-void Disable_MotorCMD();
-void CalibrateMotor();
+void SD_Save_Loop();
+void SD_Save_Data(char *_Save_String);
+void SD_Save_Init();
+void log_message(char *str);
 
-#endif /* MOTORCMD_H_ */
+#endif /* SD_SAVE_H_ */
