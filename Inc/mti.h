@@ -28,5 +28,6 @@ uint8_t mti_checksum(MTiMsg* msg);
 void mti_send_message(const uint8_t* msg);
 void mti_handle_message(MTiMsg* msg);
 void mti_handle_mtdata2(MTiMsg* msg);
+void mti_receive_message();
 
 #endif

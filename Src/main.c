@@ -193,9 +193,9 @@ int main(void)
 
 	PolarCoordinate_t polar_dest;
 
-	//Hall A ETS
-	polar_dest.latitude = 32.342665;
-	polar_dest.longitude = -106.763651;
+	//Landing zone Spaceport
+	polar_dest.latitude = 32.947222;
+	polar_dest.longitude = -106.915226;
 
 	Set_GPSDestination(polar_dest);
 
@@ -206,6 +206,8 @@ int main(void)
 
 	Set_uWindVector(uWindVector);
 
+	//TODO: IMPORTANT TO REMOVE THAT LINE!
+	//Set_RocketState(MAIN_DESCENT);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -330,6 +332,7 @@ static void MX_NVIC_Init(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 	static int tim3Counter = 1;
+	static float altitude = 900.0;
 
 	if (htim->Instance == TIM3) {
 
@@ -345,6 +348,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		if (tim3Counter == 20) {
 			SGP_Control_Loop();
+
+			//TODO: To remove
+			Set_Altitude(altitude);
+
+			altitude += 30.0;
 		}
 
 		tim3Counter++;
@@ -359,6 +367,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 	if (htim->Instance == TIM6) {
 		//SD_Save_Loop();
+
 	}
 
 }

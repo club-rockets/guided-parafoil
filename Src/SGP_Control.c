@@ -355,6 +355,11 @@ void SGP_Control_Loop() {
 		break;
 	}
 
+	char buffer[256];
+
+	sprintf(buffer, "\n\rSGP State: %i\n\r", SGP_Data.SGP_State);
+	Send_serial_message(buffer);
+
 	/********************	PARAFOIL POSITION CONTROL *******************/
 	if (SGP_Data.ControlEnable)
 	{
@@ -422,11 +427,11 @@ void SGP_Control_Loop() {
 
 
 		 if (DirErr > 0) {
-			 MotorLeft_PosCmd = PGAIN * DirErr + 300;
+			 MotorLeft_PosCmd = PGAIN * DirErr + 413;//413 rad = 30% from 55 cm
 			 MotorRight_PosCmd = 300;
 		 } else {
 			 MotorLeft_PosCmd = 300;
-			 MotorRight_PosCmd = PGAIN * DirErr + 300;
+			 MotorRight_PosCmd = PGAIN * DirErr + 413;
 		 }
 
 		 Set_Motor_Command(MotorLeft_PosCmd, MotorRight_PosCmd);

@@ -64,12 +64,12 @@
 
 //http://www.csgnetwork.com/degreelenllavcalc.html
 //Space port latitude = 32.990254 degrees
-//#define LAT_DEGREEVALUE 110904.26;
-//#define LON_DEGREEVALUE 93463.46;
+#define LAT_DEGREEVALUE 110904.26;
+#define LON_DEGREEVALUE 93463.46;
 
 //Las cruces latitude = 32.32 degrees
-#define LAT_DEGREEVALUE 110892.40;
-#define LON_DEGREEVALUE 94163.45;
+//#define LAT_DEGREEVALUE 110892.40;
+//#define LON_DEGREEVALUE 94163.45;
 
 //Las cruces latitude = 45.5087 degrees
 //#define LAT_DEGREEVALUE 111141.69;
@@ -110,5 +110,6 @@ void GPS_Read_Data();
 GPS_Data_t* GPS_GetData();
 GPS_Data_t* GPS_GetSpecificData(uint8_t _GPS_Number);
 void Set_GPSDestination(PolarCoordinate_t _PolarDest_Coordinate);
+uint8_t GPS_error(void);
 
 #endif /* GPS_H_ */

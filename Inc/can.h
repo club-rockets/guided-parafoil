@@ -97,6 +97,11 @@ extern CAN_HandleTypeDef hcan2;
 #define CAN_BEZIER_CP2_X			0x316
 #define CAN_BEZIER_CP2_Y			0x317
 
+#define CAN_MOTORCMD_LEFT			0x400
+#define CAN_MOTORCMD_RIGHT			0x401
+#define CAN_MOTORPOS_LEFT			0x402
+#define CAN_MOTORPOS_RIGHT			0x403
+
 
 /* USER CODE END Private defines */
 

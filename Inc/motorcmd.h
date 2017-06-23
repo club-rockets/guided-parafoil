@@ -22,6 +22,7 @@
 #include "tim.h"
 #include "rtc.h"
 #include "SD_save.h"
+#include "can.h"
 
 /******************************************************************************/
 /*                                Define                                      */

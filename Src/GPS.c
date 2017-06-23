@@ -15,6 +15,7 @@ PolarCoordinate_t PolarGPS_Destination;
 uint8_t CoordinateUpdated = 0;
 uint8_t DestinationSet = 0;
 
+uint8_t usart6_ParseErr = 0;
 
 uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser);
 
@@ -53,7 +54,8 @@ void GPS_Read_Data() {
 	if (GPS2_Parser.GPS_FrameRdy != 0) {
 
 		parse_UBX_char(&GPS2_Parser);
-
+		GPS2_Parser.GPS_FrameRdy = 0;
+		usart6_ParseErr = 0;
 	}
 
 
@@ -116,11 +118,11 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 
 			uint8_t Data[8];
 
-//			memcpy(&Data, _UBX_Parser->GPS_Data.PolarCoordinate.longitude, sizeof(Data));
-//			Send_CAN_Message(Data, CAN_GPS_LONGITUDE_ID);
-//
-//			memcpy(&Data, _UBX_Parser->GPS_Data.PolarCoordinate.latitude, sizeof(Data));
-//			Send_CAN_Message(Data, CAN_GPS_LATITUDE_ID);
+			memcpy(Data, &_UBX_Parser->GPS_Data.PolarCoordinate.longitude, sizeof(float));
+			Send_CAN_Message(Data, CAN_GPS_LONGITUDE_ID);
+
+			memcpy(Data, &_UBX_Parser->GPS_Data.PolarCoordinate.latitude, sizeof(float));
+			Send_CAN_Message(Data, CAN_GPS_LATITUDE_ID);
 
 			memcpy(Data, &_UBX_Parser->GPS_Data.altitude, sizeof(uint32_t));
 			Send_CAN_Message(Data, CAN_GPS_ALTITUDE_ID);
@@ -135,8 +137,6 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 
 		}
 	}
-
-	_UBX_Parser->GPS_FrameRdy = 0;
 
 	return 1;
 }
@@ -191,5 +191,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 		//HAL_UART_Receive_IT(&huart6, usart6_rx, 100);
 	}
+}
+
+uint8_t GPS_error(void)
+{
+	return usart6_ParseErr;
 }
 

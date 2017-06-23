@@ -26,6 +26,7 @@
 #include "motorcmd.h"
 #include "GPS.h"
 #include "can.h"
+#include "serial_com.h"
 
 #define D1 150
 #define D2 150
