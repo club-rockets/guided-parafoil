@@ -143,33 +143,33 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
 
-	hcan2.pTxMsg = &CanTx_msg;
-	hcan2.pRxMsg = &CanRx_msg;
+//	hcan2.pTxMsg = &CanTx_msg;
+//	hcan2.pRxMsg = &CanRx_msg;
+//
+//	CAN_FilterStruct.FilterNumber = 14; //Specifies the filter which will be initialized.
+//	CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDMASK; //Specifies the filter mode to be initialized.
+//														 //CAN_FILTERMODE_IDLIST : Identifier list mode
+//	CAN_FilterStruct.FilterScale = CAN_FILTERSCALE_32BIT;
+//	CAN_FilterStruct.FilterIdHigh = 0; //Specifies the filter identification number (MSBs for a 32-bit configuration, first one for a 16-bit configuration).
+//	CAN_FilterStruct.FilterIdLow = 0;
+//	CAN_FilterStruct.FilterMaskIdHigh = 0;
+//	CAN_FilterStruct.FilterMaskIdLow = 0;
+//	CAN_FilterStruct.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+//	CAN_FilterStruct.FilterActivation = ENABLE; /* Enable this filter */
+//	CAN_FilterStruct.BankNumber = 14;
 
-	CAN_FilterStruct.FilterNumber = 14; //Specifies the filter which will be initialized.
-	CAN_FilterStruct.FilterMode = CAN_FILTERMODE_IDMASK; //Specifies the filter mode to be initialized.
-														 //CAN_FILTERMODE_IDLIST : Identifier list mode
-	CAN_FilterStruct.FilterScale = CAN_FILTERSCALE_32BIT;
-	CAN_FilterStruct.FilterIdHigh = 0; //Specifies the filter identification number (MSBs for a 32-bit configuration, first one for a 16-bit configuration).
-	CAN_FilterStruct.FilterIdLow = 0;
-	CAN_FilterStruct.FilterMaskIdHigh = 0;
-	CAN_FilterStruct.FilterMaskIdLow = 0;
-	CAN_FilterStruct.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-	CAN_FilterStruct.FilterActivation = ENABLE; /* Enable this filter */
-	CAN_FilterStruct.BankNumber = 14;
+	//HAL_CAN_ConfigFilter(&hcan2, &CAN_FilterStruct);
 
-	HAL_CAN_ConfigFilter(&hcan2, &CAN_FilterStruct);
-
-	hcan2.pTxMsg->StdId = 0x244;
-	hcan2.pTxMsg->RTR = CAN_RTR_DATA;
-	hcan2.pTxMsg->IDE = CAN_ID_STD;
-	hcan2.pTxMsg->DLC = 1;
+	//hcan2.pTxMsg->StdId = 0x244;
+	//hcan2.pTxMsg->RTR = CAN_RTR_DATA;
+	//hcan2.pTxMsg->IDE = CAN_ID_STD;
+	//hcan2.pTxMsg->DLC = 1;
 
 	//init main handlers and stuff
-	SD_Save_Init();
-	Motor_Init();
-	GPS_Init();
-	SGP_Control_Init();
+	//SD_Save_Init();
+	//Motor_Init();
+	//GPS_Init();
+	//SGP_Control_Init();
 
 	//MTi release reset
 	HAL_GPIO_WritePin(MTi_RST_GPIO_Port, MTi_RST_Pin, GPIO_PIN_RESET);
@@ -179,32 +179,32 @@ int main(void)
 	//start uart interrupt for GPS, cte lenght rx
 
 	//TIMER START
-	HAL_TIM_Base_Start(&htim2);
-	HAL_TIM_Base_Start_IT(&htim3);
-	HAL_TIM_Base_Start_IT(&htim4);
-	HAL_TIM_Base_Start_IT(&htim6);
+	//HAL_TIM_Base_Start(&htim2);
+	//HAL_TIM_Base_Start_IT(&htim3);
+	//HAL_TIM_Base_Start_IT(&htim4);
+	//HAL_TIM_Base_Start_IT(&htim6);
 
 	//MTi release reset
 	HAL_GPIO_WritePin(MTi_RST_GPIO_Port, MTi_RST_Pin, GPIO_PIN_SET);
 
 	//CAN START
-	HAL_GPIO_WritePin(CAN_STANDBY_GPIO_Port, CAN_STANDBY_Pin, GPIO_PIN_RESET);
-	__HAL_CAN_ENABLE_IT(&hcan2, CAN_IT_FMP0);
+	//HAL_GPIO_WritePin(CAN_STANDBY_GPIO_Port, CAN_STANDBY_Pin, GPIO_PIN_RESET);
+	//__HAL_CAN_ENABLE_IT(&hcan2, CAN_IT_FMP0);
 
-	PolarCoordinate_t polar_dest;
+	//PolarCoordinate_t polar_dest;
 
 	//Landing zone Spaceport
-	polar_dest.latitude = 32.947222;
-	polar_dest.longitude = -106.915226;
+	//polar_dest.latitude = 32.947222;
+	//polar_dest.longitude = -106.915226;
 
-	Set_GPSDestination(polar_dest);
+	//Set_GPSDestination(polar_dest);
 
-	vector_2D_t uWindVector;
+	//vector_2D_t uWindVector;
 
-	uWindVector.X = 1.0;
-	uWindVector.Y = 0.0;
+	//uWindVector.X = 1.0;
+	//uWindVector.Y = 0.0;
 
-	Set_uWindVector(uWindVector);
+	//Set_uWindVector(uWindVector);
 
 	//TODO: IMPORTANT TO REMOVE THAT LINE!
 	//Set_RocketState(MAIN_DESCENT);
@@ -217,7 +217,7 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-		serial_menu();
+		//serial_menu();
 
 
 	}
@@ -373,7 +373,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-
 	if (GPIO_Pin == SD_DETECT_Pin) {
 	  uint8_t Save_String[512];
 
@@ -398,9 +397,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		f_close(&data_file);
 	  }
 	}
-	//else if (GPIO_Pin == GPIO_PIN_4) {
-	else if (0) {
-		//HAL_GPIO_TogglePin(GPIOD, LED4_Pin);
+	else if (GPIO_Pin == MTi_SYNC_IN_Pin) {
+
 		mti_receive_message();
 	}
 

@@ -17,11 +17,11 @@
 extern SPI_HandleTypeDef hspi1;
 
 /* XBus Messages */
-static const uint8_t MSG_WAKEUP_ACK[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x3F, 0x00, 0xC2 };
-static const uint8_t MSG_SET_SYNC_SETTINGS[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x2C, 0x0C, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xBB };
-static const uint8_t MSG_GOTO_MEASUREMENT[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x10, 0x00, 0xF1 };
+static uint8_t MSG_WAKEUP_ACK[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x3F, 0x00, 0xC2 };
+static uint8_t MSG_SET_SYNC_SETTINGS[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x2C, 0x0C, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xBB };
+static uint8_t MSG_GOTO_MEASUREMENT[] = { 0x03, 0xFF, 0xFF, 0xFF, 0x10, 0x00, 0xF1 };
 
-static const uint8_t MSG_SET_OUTPUT_CONFIGURATION[] = {
+static uint8_t MSG_SET_OUTPUT_CONFIGURATION[] = {
 	0x03, // Control pipe
 	0xFF, 0xFF, 0xFF, // Padding bytes
 	0xC0, // Message ID
@@ -78,7 +78,7 @@ uint8_t mti_checksum(MTiMsg* msg)
 }
 
 /* Send a message to the MTi over SPI */
-void mti_send_message(const uint8_t* msg)
+void mti_send_message(uint8_t* msg)
 {
 	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
 	HAL_SPI_Transmit(&hspi1, msg, 7 + msg[5], 100);
@@ -88,46 +88,42 @@ void mti_send_message(const uint8_t* msg)
 /* Receive a message from the MTi, over SPI */
 void mti_receive_message()
 {
-	uint8_t rxPipeBuf[8] = { 0 };
+	uint8_t rxPipeBuf[8] = {0};
+	uint8_t *rxmsg = NULL;
 	uint16_t notification_size = 0, measurement_size = 0;
+	uint8_t pipe = 0;
+	
 	MTiMsg msg;
-
-	// Set the pipe
-	txmsg[0] = 0x04;
-
-	// Read message size
+	pipe = 0x04;
+	
 	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
-	HAL_SPI_TransmitReceive(&hspi1, txmsg, rxPipeBuf, 8, 100);
+	HAL_SPI_TransmitReceive(&hspi1, &pipe, rxPipeBuf, 8, 100);
 	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_SET);
 
-	// Figure out whether message is notification or measurement based
-	// on size information.
+	// Prepare buffers for receiving message
 	notification_size = (rxPipeBuf[4] | rxPipeBuf[5] << 8);
 	measurement_size = (rxPipeBuf[6] | rxPipeBuf[7] << 8);
-	txmsg[0] = (notification_size != 0 ? 0x05 : 0x06);
 
-	delay_us(10);
+	rxmsg = (uint8_t *)malloc((notification_size != 0 ? notification_size : measurement_size) + 4);
+	pipe = (notification_size != 0 ? 0x05 : 0x06);
 
-	// Read message
 	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_RESET);
-	HAL_SPI_TransmitReceive(&hspi1, txmsg, rxmsg, (notification_size != 0 ? notification_size : measurement_size) + 3, 100);
+	HAL_SPI_Transmit(&hspi1, &pipe, 1, 100);
+	HAL_SPI_Receive(&hspi1, rxmsg, (notification_size != 0 ? notification_size : measurement_size) + 3, 100);
 	HAL_GPIO_WritePin(MTi_CS_GPIO_Port, MTi_CS_Pin, GPIO_PIN_SET);
-
-	// Call function to handle message
+	
 	msg.mid = rxmsg[3];
 	msg.len = rxmsg[4];
-
-	if (msg.len != 0)
-		msg.data = &rxmsg[5];
-	else
-		msg.data = NULL;
-
+	msg.data = &rxmsg[5];
+	
 	mti_handle_message(&msg);
+	free(rxmsg);
 }
 
 /* Handle a received message */
 void mti_handle_message(MTiMsg* msg)
 {
+
 	switch (msg->mid) {
 	case MID_WAKEUP:
 		mti_send_message(MSG_WAKEUP_ACK);
@@ -144,7 +140,7 @@ void mti_handle_message(MTiMsg* msg)
 		break;
 
 	case MID_MTDATA2:
-		HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, GPIO_PIN_SET);
+		HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
 		mti_handle_mtdata2(msg);
 		break;
 

@@ -135,3 +135,4 @@ exc/
 *.exc.*
 /bin/
 /Debug
+/Release/
