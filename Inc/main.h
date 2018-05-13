@@ -4,7 +4,7 @@
   * Description        : This file contains the common defines of the application
   ******************************************************************************
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -44,6 +44,7 @@
 #ifndef __MAIN_H
 #define __MAIN_H
   /* Includes ------------------------------------------------------------------*/
+#include "stm32f4xx_hal.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -145,6 +146,7 @@
 #define GPS_D_SEL_GPIO_Port GPIOD
 #define SD_DETECT_Pin GPIO_PIN_3
 #define SD_DETECT_GPIO_Port GPIOD
+#define SD_DETECT_EXTI_IRQn EXTI3_IRQn
 #define GPS_INT_Pin GPIO_PIN_4
 #define GPS_INT_GPIO_Port GPIOD
 #define GPS_RX_Pin GPIO_PIN_5

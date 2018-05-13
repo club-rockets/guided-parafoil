@@ -5,7 +5,7 @@
   *                      of the CAN instances.
   ******************************************************************************
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -78,9 +78,10 @@ extern CAN_HandleTypeDef hcan2;
 #define CAN_ACCELERATION_Y_ID     	0x222
 #define CAN_ACCELERATION_Z_ID     	0x223
 
-#define CAN_GYRO_YIELD_ID         	0x231
-#define CAN_GYRO_YAW_ID           	0x232
-#define CAN_GYRO_ROLL_ID          	0x233
+#define CAN_GYRO_Q1_ID         		0x231
+#define CAN_GYRO_Q2_ID           	0x232
+#define CAN_GYRO_Q3_ID          	0x233
+#define CAN_GYRO_Q4_ID          	0x234
 
 #define CAN_SGP_STATE				0x300
 #define CAN_SGP_DESCENTTIME			0x301
@@ -111,7 +112,9 @@ void MX_CAN2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 HAL_StatusTypeDef CANBUS_LaunchDataRead(void);
-HAL_StatusTypeDef Send_CAN_Message(uint8_t _data[8], uint32_t _StdId);
+//HAL_StatusTypeDef can_send_message(uint8_t _data[8], uint32_t _StdId);
+void can_send_message(uint32_t message_id, uint8_t data[8]);
+
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

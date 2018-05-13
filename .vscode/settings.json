@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "mti.h": "c",
+        "system_error": "c",
+        "array": "c",
+        "string_view": "c"
+    }
+}

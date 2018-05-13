@@ -442,19 +442,19 @@ void SGP_Control_Loop() {
 
 	//General algorithme parameter
 	memcpy(Data, &SGP_Data.SGP_State, sizeof(uint8_t[8]));
-	Send_CAN_Message(Data, CAN_SGP_STATE);
+	can_send_message(CAN_SGP_STATE, Data);
 
 	memcpy(Data, &SGP_Data.DescentTime, sizeof(float));
-	Send_CAN_Message(Data, CAN_SGP_DESCENTTIME);
+	can_send_message(CAN_SGP_DESCENTTIME, Data);
 
 	memcpy(Data, &SGP_Data.HorzSpeed, sizeof(float));
-	Send_CAN_Message(Data, CAN_SGP_HORZSPEED);
+	can_send_message(CAN_SGP_HORZSPEED, Data);
 
 	memcpy(Data, &SGP_Data.VertSpeed, sizeof(float));
-	Send_CAN_Message(Data, CAN_SGP_VERTSPEED);
+	can_send_message(CAN_SGP_VERTSPEED, Data);
 
 	memcpy(Data, &SGP_Data.PosTTracking, sizeof(float));
-	Send_CAN_Message(Data, CAN_SGP_POSTTRACKING);
+	can_send_message(CAN_SGP_POSTTRACKING, Data);
 
 	/***************************************************
 	 * SD save in buffer
@@ -540,27 +540,27 @@ void Save_BezierData(Bezier_curve_t *_BezierData)
 	//Bezier curve parameter
 	//TIP
 	memcpy(Data, &_BezierData->tip.X, sizeof(float));
-	Send_CAN_Message(Data, CAN_BEZIER_TIP_X);
+	can_send_message(CAN_BEZIER_TIP_X, Data);
 	memcpy(Data, &_BezierData->tip.Y, sizeof(float));
-	Send_CAN_Message(Data, CAN_BEZIER_TIP_Y);
+	can_send_message(CAN_BEZIER_TIP_Y, Data);
 
 	//FAP
 	memcpy(Data, &_BezierData->fap.X, sizeof(float));
-	Send_CAN_Message(Data, CAN_BEZIER_FAP_X);
+	can_send_message(CAN_BEZIER_FAP_X, Data);
 	memcpy(Data, &_BezierData->fap.Y, sizeof(float));
-	Send_CAN_Message(Data, CAN_BEZIER_FAP_Y);
+	can_send_message(CAN_BEZIER_FAP_Y, Data);
 
 	//CP1
 	memcpy(Data, &_BezierData->cp1.X, sizeof(float));
-	Send_CAN_Message(Data, CAN_BEZIER_CP1_X);
+	can_send_message(CAN_BEZIER_CP1_X, Data);
 	memcpy(Data, &_BezierData->cp1.Y, sizeof(float));
-	Send_CAN_Message(Data, CAN_BEZIER_CP1_Y);
+	can_send_message(CAN_BEZIER_CP1_Y, Data);
 
 	//CP2
 	memcpy(Data, &_BezierData->fap.X, sizeof(float));
-	Send_CAN_Message(Data, CAN_BEZIER_CP2_X);
+	can_send_message(CAN_BEZIER_CP2_X, Data);
 	memcpy(Data, &_BezierData->fap.Y, sizeof(float));
-	Send_CAN_Message(Data, CAN_BEZIER_CP2_Y);
+	can_send_message(CAN_BEZIER_CP2_Y, Data);
 }
 
 uint8_t Launch_MotorTest() {

@@ -4,7 +4,7 @@
   * @brief   Interrupt Service Routines.
   ******************************************************************************
   *
-  * COPYRIGHT(c) 2017 STMicroelectronics
+  * COPYRIGHT(c) 2018 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -38,7 +38,6 @@
 /* USER CODE BEGIN 0 */
 #include <stdlib.h>
 #include "mti.h"
-
 
 extern uint8_t usart2_rx[GPS_FRAME_LENGTH];
 extern uint8_t usart6_rx[GPS_FRAME_LENGTH];
@@ -81,6 +80,8 @@ void HardFault_Handler(void)
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
+    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+    /* USER CODE END W1_HardFault_IRQn 0 */
   }
   /* USER CODE BEGIN HardFault_IRQn 1 */
 
@@ -97,6 +98,8 @@ void MemManage_Handler(void)
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {
+    /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
+    /* USER CODE END W1_MemoryManagement_IRQn 0 */
   }
   /* USER CODE BEGIN MemoryManagement_IRQn 1 */
 
@@ -113,6 +116,8 @@ void BusFault_Handler(void)
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
   {
+    /* USER CODE BEGIN W1_BusFault_IRQn 0 */
+    /* USER CODE END W1_BusFault_IRQn 0 */
   }
   /* USER CODE BEGIN BusFault_IRQn 1 */
 
@@ -129,6 +134,8 @@ void UsageFault_Handler(void)
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
   {
+    /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
+    /* USER CODE END W1_UsageFault_IRQn 0 */
   }
   /* USER CODE BEGIN UsageFault_IRQn 1 */
 
@@ -215,9 +222,8 @@ void EXTI3_IRQHandler(void)
 */
 void EXTI4_IRQHandler(void)
 {
-	/* USER CODE BEGIN EXTI9_5_IRQn 0 */
-  mti_receive_message();
- 
+  /* USER CODE BEGIN EXTI4_IRQn 0 */
+	mti_receive_message();
   /* USER CODE END EXTI4_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
   /* USER CODE BEGIN EXTI4_IRQn 1 */
@@ -279,6 +285,19 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
 
   /* USER CODE END TIM6_DAC_IRQn 1 */
+}
+
+/**
+* @brief This function handles CAN2 TX interrupts.
+*/
+void CAN2_TX_IRQHandler(void)
+{
+  /* USER CODE BEGIN CAN2_TX_IRQn 0 */
+  /* USER CODE END CAN2_TX_IRQn 0 */
+  HAL_CAN_IRQHandler(&hcan2);
+  /* USER CODE BEGIN CAN2_TX_IRQn 1 */
+
+  /* USER CODE END CAN2_TX_IRQn 1 */
 }
 
 /**

@@ -5,7 +5,7 @@
   *                      of the CAN instances.
   ******************************************************************************
   *
-  * Copyright (c) 2017 STMicroelectronics International N.V. 
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -46,9 +46,9 @@
 #include "can.h"
 
 #include "gpio.h"
+#include "string.h"
 
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 CAN_HandleTypeDef hcan2;
@@ -100,6 +100,9 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     GPIO_InitStruct.Alternate = GPIO_AF9_CAN2;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+    /* Peripheral interrupt init */
+    HAL_NVIC_SetPriority(CAN2_TX_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(CAN2_TX_IRQn);
   /* USER CODE BEGIN CAN2_MspInit 1 */
 
   /* USER CODE END CAN2_MspInit 1 */
@@ -125,6 +128,8 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12|GPIO_PIN_13);
 
     /* Peripheral interrupt Deinit*/
+    HAL_NVIC_DisableIRQ(CAN2_TX_IRQn);
+
     HAL_NVIC_DisableIRQ(CAN2_RX0_IRQn);
 
     HAL_NVIC_DisableIRQ(CAN2_RX1_IRQn);
@@ -151,14 +156,6 @@ HAL_StatusTypeDef CANBUS_LaunchDataRead(void)
   return res;
 }
 
-HAL_StatusTypeDef Send_CAN_Message(uint8_t _data[8], uint32_t _StdId)
-{
-	memcpy(hcan2.pTxMsg->Data, _data, sizeof(uint8_t[8]));
-	hcan2.pTxMsg->StdId = _StdId;
-	hcan2.pTxMsg->DLC = 2;
-
-	return HAL_CAN_Transmit(&hcan2, 1);
-}
 
 void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
 
@@ -181,6 +178,15 @@ void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* hcan) {
 	}
 
 }
+
+void can_send_message(uint32_t id, uint8_t data[8])
+{
+    memcpy(hcan2.pTxMsg->Data, data, 8);
+    hcan2.pTxMsg->StdId = id;
+    hcan2.pTxMsg->DLC = 8;
+    HAL_CAN_Transmit(&hcan2, 1);
+}
+
 /* USER CODE END 1 */
 
 /**

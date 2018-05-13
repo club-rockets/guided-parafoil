@@ -119,19 +119,19 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 			uint8_t Data[8];
 
 			memcpy(Data, &_UBX_Parser->GPS_Data.PolarCoordinate.longitude, sizeof(float));
-			Send_CAN_Message(Data, CAN_GPS_LONGITUDE_ID);
+			can_send_message(CAN_GPS_LONGITUDE_ID, Data);
 
 			memcpy(Data, &_UBX_Parser->GPS_Data.PolarCoordinate.latitude, sizeof(float));
-			Send_CAN_Message(Data, CAN_GPS_LATITUDE_ID);
+			can_send_message(CAN_GPS_LATITUDE_ID, Data);
 
 			memcpy(Data, &_UBX_Parser->GPS_Data.altitude, sizeof(uint32_t));
-			Send_CAN_Message(Data, CAN_GPS_ALTITUDE_ID);
+			can_send_message(CAN_GPS_ALTITUDE_ID, Data);
 
 			memcpy(Data, &_UBX_Parser->GPS_Data.fix_type, sizeof(uint8_t));
-			Send_CAN_Message(Data, CAN_GPS_FIX_TYPE_ID);
+			can_send_message(CAN_GPS_FIX_TYPE_ID, Data);
 
 			memcpy(Data, &_UBX_Parser->GPS_Data.N_satellites, sizeof(uint8_t));
-			Send_CAN_Message(Data, CAN_GPS_N_SATELLITE_ID);
+			can_send_message(CAN_GPS_N_SATELLITE_ID, Data);
 
 			HAL_CAN_Transmit(&hcan2, 5);
 

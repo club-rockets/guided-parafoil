@@ -171,16 +171,16 @@ void MotorCMD_Loop() {
 	uint8_t Data[8];
 
 	memcpy(Data, &MotorLeft_PosCmd, sizeof(int));
-	Send_CAN_Message(Data, CAN_MOTORCMD_LEFT);
+	can_send_message(CAN_MOTORCMD_LEFT, Data);
 
 	memcpy(Data, &MotorRight_PosCmd, sizeof(int));
-	Send_CAN_Message(Data, CAN_MOTORCMD_RIGHT);
+	can_send_message(CAN_MOTORCMD_RIGHT, Data);
 
 	memcpy(Data, &MotorLeftPos, sizeof(float));
-	Send_CAN_Message(Data, CAN_MOTORPOS_LEFT);
+	can_send_message(CAN_MOTORPOS_LEFT, Data);
 
 	memcpy(Data, &MotorRightPos, sizeof(float));
-	Send_CAN_Message(Data, CAN_MOTORPOS_RIGHT);
+	can_send_message(CAN_MOTORPOS_RIGHT, Data);
 
 	//sprintf((char*) (Save_String), "%s,%f,%f,%f,%f", "SGP_MD",MotorLeft_Cmd, MotorRight_Cmd, MotorLeftPos, MotorRightPos);
 

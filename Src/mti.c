@@ -28,7 +28,7 @@ static uint8_t MSG_SET_OUTPUT_CONFIGURATION[] = {
 	0x28, // Len
 	0x10, 0x20, 0x00, 0x32, //  1. Packet Counter
 	0x10, 0x60, 0x00, 0x32, //  2. Sample time fine
-	0x20, 0x30, 0x00, 0x32, //  3. Euler angles
+	0x20, 0x10, 0x00, 0x32, //  3. Quaternions
 	0x40, 0x10, 0x00, 0x32, //  4. Delta V
 	0x40, 0x20, 0x00, 0x32, //  5. Acceleration
 	0x40, 0x30, 0x00, 0x32, //  6. Free acceleration
@@ -36,12 +36,11 @@ static uint8_t MSG_SET_OUTPUT_CONFIGURATION[] = {
 	0x80, 0x30, 0x00, 0x32, //  7. Delta Q
 	0xC0, 0x20, 0x00, 0x32, //  9. Magnetic field
 	0xE0, 0x10, 0x00, 0x32, // 10. Status byte
-	0xF5 // Checksum
+	0x15 // Checksum
 };
 
 // Static variables
-static uint8_t rxmsg[256] = { 0 };
-static uint8_t txmsg[256] = { 0 };
+uint32_t count = 0;
 
 // Utility functions
 
@@ -123,7 +122,7 @@ void mti_receive_message()
 /* Handle a received message */
 void mti_handle_message(MTiMsg* msg)
 {
-
+	HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
 	switch (msg->mid) {
 	case MID_WAKEUP:
 		mti_send_message(MSG_WAKEUP_ACK);
@@ -140,7 +139,6 @@ void mti_handle_message(MTiMsg* msg)
 		break;
 
 	case MID_MTDATA2:
-		HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
 		mti_handle_mtdata2(msg);
 		break;
 
@@ -165,55 +163,59 @@ void mti_handle_message(MTiMsg* msg)
 void mti_handle_mtdata2(MTiMsg* msg)
 {
 	uint8_t* data = msg->data;
-
-	char str[512] = { 0 };
-
-	uint8_t data_count = 0;
 	uint16_t dataid = 0;
-	uint32_t compound = 0;
+	uint8_t datac[8];
+	fbit compound;
 
 	if (msg->data == NULL)
 		return; // ABANDON THREAD!
 
 	// Convert to CSV
-	strcat(str, "MTi_DATA,");
 	for (uint8_t i = 0; i < msg->len; i++) {
 		dataid = (data[i] << 8) | data[i + 1];
 
+		 if (dataid == 0x4020 && count % 2 == 0) {
+		 	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
+
+		  	uint8_t j = 0;
+		  	compound.bit = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
+		  	memcpy(datac, &compound, sizeof(float));
+		  	can_send_message(CAN_ACCELERATION_X_ID, datac);
+
+		  	j += 4;
+		  	compound.bit = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
+			memcpy(datac, &compound, sizeof(float));
+		  	can_send_message(CAN_ACCELERATION_Y_ID, datac);
+
+		  	j += 4;
+		  	compound.bit = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
+			memcpy(datac, &compound, sizeof(float));
+			can_send_message(CAN_ACCELERATION_Z_ID, datac);
+		}
+		if (dataid == 0x2010 && count % 2 == 1) {
+			HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
+		  	uint8_t j = 0;
+		  	compound.bit = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
+		  	memcpy(datac, &compound, sizeof(float));
+		  	can_send_message(CAN_GYRO_Q1_ID, datac);
+
+		  	j += 4;
+		  	compound.bit = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
+			memcpy(datac, &compound, sizeof(float));
+		  	can_send_message(CAN_GYRO_Q2_ID, datac);
+
+		  	j += 4;
+		  	compound.bit = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
+			memcpy(datac, &compound, sizeof(float));
+			can_send_message(CAN_GYRO_Q3_ID, datac);
+
+			j += 4;
+			compound.bit = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
+			memcpy(datac, &compound, sizeof(float));
+			can_send_message(CAN_GYRO_Q4_ID, datac);
+		}
 		// Packet counter
-		if (dataid == 0x1020) {
-			data_count++;
-			compound = ((data[i + 3] << 8) | (data[i + 3 + 1] << 0));
-			sprintf(&str[strlen(str)], "%05lu,", compound);
-		}
-		// Sample time fine
-		else if (dataid == 0x1060) {
-			data_count++;
-			compound = (data[i + 3 + 0] << 24) | (data[i + 3 + 1] << 16) | (data[i + 3 + 2] << 8) | (data[i + 3 + 3] << 0);
-			sprintf(&str[strlen(str)], "%010lu,", compound);
-		}
-		// Status byte
-		else if (dataid == 0xe010) {
-			data_count++;
-			sprintf(&str[strlen(str)], "0x%02x,", data[i + 3]);
-		}
-		// Anything else is a series of floats
-		else {
-			data_count++;
-			for (uint8_t j = 0; j < data[i + 2]; j += 4) {
-				compound = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
-				sprintf(&str[strlen(str)], "%+012.8f,", ((fbit)compound).val);
-			}
-		}
 		i += 2 + data[i + 2];
 	}
-	str[strlen(str) - 1] = '\n';
-
-	// Erroneous message : the number of data packets sent did not match the number expected.
-	// The packet is flushed.
-	if (data_count != 10)
-		return;
-
-	//write to sd card
-	SD_Save_Data(str);
+	count ++;
 }
