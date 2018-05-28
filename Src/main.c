@@ -166,7 +166,7 @@ int main(void)
 	hcan2.pTxMsg->DLC = 1;
 
 	//init main handlers and stuff
-	SD_Save_Init();
+	//SD_Save_Init();
 	//Motor_Init();
 	GPS_Init();
 	//SGP_Control_Init();
@@ -180,7 +180,7 @@ int main(void)
 
 	//TIMER START
 	//HAL_TIM_Base_Start(&htim2);
-	//HAL_TIM_Base_Start_IT(&htim3);
+	HAL_TIM_Base_Start_IT(&htim3);
 	//HAL_TIM_Base_Start_IT(&htim4);
 	//HAL_TIM_Base_Start_IT(&htim6);
 
@@ -313,77 +313,19 @@ static void MX_NVIC_Init(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 	static int tim3Counter = 1;
-	static float altitude = 900.0;
 
 	if (htim->Instance == TIM3) {
-
-		MotorCMD_Loop();
-
-		if (!(tim3Counter % 4)) {
+		if (!(tim3Counter % 20)) {
 			GPS_Read_Data();
 		}
 
-		if (tim3Counter == 19) {
-			CANBUS_LaunchDataRead();
-		}
-
-		if (tim3Counter == 20) {
-			SGP_Control_Loop();
-
-			//TODO: To remove
-			Set_Altitude(altitude);
-
-			altitude += 30.0;
-		}
-
-		tim3Counter++;
-		if (tim3Counter > 20)
-			tim3Counter = 1;
+        tim3Counter++;
+        if (tim3Counter > 20) {
+            tim3Counter = 1;
+        }
 	}
-
-//  if (htim->Instance == TIM4)
-//  {
-//    SGP_Control_Loop();
-//  }
-
-	if (htim->Instance == TIM6) {
-		//SD_Save_Loop();
-
-	}
-
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	if (GPIO_Pin == SD_DETECT_Pin) {
-	  uint8_t Save_String[512];
-
-
-	  //recall all init process
-	  //pretty slow, but works quite well
-
-	  if (BSP_SD_Init() == 0) {
-		f_mount(&fs, (TCHAR const*) SD_Path, 1);
-		f_open(&data_file, FILENAME, FA_OPEN_ALWAYS | FA_WRITE);
-		f_lseek(&data_file, f_size(&data_file));
-
-		//Log file header
-		strcpy((char*) Save_String, DATA_LOG_HEADER);
-		f_puts((char*) Save_String, &data_file);
-
-		//column title
-		strcpy((char*) Save_String, DATA_LOG_COL_NAME);
-		f_puts((char*) Save_String, &data_file);
-
-		//write file to sd
-		f_close(&data_file);
-	  }
-	}
-	else if (GPIO_Pin == MTi_SYNC_IN_Pin) {
-
-		mti_receive_message();
-	}
-
-}
 
 /* peripheral callback END */
 

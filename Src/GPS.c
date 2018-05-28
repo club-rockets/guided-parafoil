@@ -127,14 +127,13 @@ uint8_t parse_UBX_char(UBX_Parser_t *_UBX_Parser) {
 			memcpy(Data, &_UBX_Parser->GPS_Data.altitude, sizeof(uint32_t));
 			can_send_message(CAN_GPS_ALTITUDE_ID, Data);
 
+			HAL_Delay(2);
+
 			memcpy(Data, &_UBX_Parser->GPS_Data.fix_type, sizeof(uint8_t));
 			can_send_message(CAN_GPS_FIX_TYPE_ID, Data);
 
 			memcpy(Data, &_UBX_Parser->GPS_Data.N_satellites, sizeof(uint8_t));
 			can_send_message(CAN_GPS_N_SATELLITE_ID, Data);
-
-			HAL_CAN_Transmit(&hcan2, 5);
-
 		}
 	}
 

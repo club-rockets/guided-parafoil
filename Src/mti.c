@@ -174,7 +174,7 @@ void mti_handle_mtdata2(MTiMsg* msg)
 	for (uint8_t i = 0; i < msg->len; i++) {
 		dataid = (data[i] << 8) | data[i + 1];
 
-		 if (dataid == 0x4020 && count % 2 == 0) {
+		 if (dataid == 0x4020 && count % 20 == 0) {
 		 	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 
 		  	uint8_t j = 0;
@@ -192,7 +192,7 @@ void mti_handle_mtdata2(MTiMsg* msg)
 			memcpy(datac, &compound, sizeof(float));
 			can_send_message(CAN_ACCELERATION_Z_ID, datac);
 		}
-		if (dataid == 0x2010 && count % 2 == 1) {
+		if (dataid == 0x2010 && count % 20 == 1) {
 			HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 		  	uint8_t j = 0;
 		  	compound.bit = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
