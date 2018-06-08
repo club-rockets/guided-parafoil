@@ -587,8 +587,8 @@ void Set_RocketState(Rocket_State_t _Rocket_State) {
 }
 
 //Set altitude in meters
-void Set_Altitude(float _altitude) {
-
+void Set_Altitude(float _altitude)
+{
 	SGP_Data.oldAltitude = SGP_Data.Altitude;
 	SGP_Data.Altitude = _altitude;
 

@@ -128,14 +128,12 @@ void mti_handle_message(MTiMsg* msg)
 		mti_send_message(MSG_WAKEUP_ACK);
 		delay_us(10);
 		mti_send_message(MSG_SET_OUTPUT_CONFIGURATION);
-		//Send_serial_message("WAKEUP ACK, SET_OUTPUT\n\r");
 		break;
 
 	case MID_SET_OUTPUT_CONFIGURATION_ACK:
 		SD_Save_Data("MTi_DATA,PacketCounter,SampleTime,EulerX,EulerY,EulerZ,DeltaVX,DeltaVY,DeltaVZ,AccX,AccY,AccZ,FreeAccX,FreeAccY,FreeAccZ,RoTX,RoTY,RoTZ,DeltaQ1,DeltaQ2,DeltaQ3,DeltaQ4,MagFieldX,MagFieldY,MagFieldZ,Status");
 		delay_us(10);
 		mti_send_message(MSG_SET_SYNC_SETTINGS);
-		//Send_serial_message("SET_OUTPUT_ACK, SET_SYNC\n\r");
 		break;
 
 	case MID_MTDATA2:
@@ -144,11 +142,9 @@ void mti_handle_message(MTiMsg* msg)
 
 	case MID_SET_SYNC_SETTINGS_ACK:
 		mti_send_message(MSG_GOTO_MEASUREMENT);
-		//Send_serial_message("SET_SYNC_ACK, GOTO_MEASUREMENT\n\r");
 		break;
 
 	case MID_GOTO_MEASUREMENT_ACK:
-		//Send_serial_message("GOTO_MEASUREMENT_ACK\n\r");
 		break;
 
 	default:
@@ -174,7 +170,7 @@ void mti_handle_mtdata2(MTiMsg* msg)
 	for (uint8_t i = 0; i < msg->len; i++) {
 		dataid = (data[i] << 8) | data[i + 1];
 
-		 if (dataid == 0x4020 && count % 20 == 0) {
+		 if (dataid == 0x4020 && count % 10 == 0) {
 		 	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 
 		  	uint8_t j = 0;
@@ -192,7 +188,7 @@ void mti_handle_mtdata2(MTiMsg* msg)
 			memcpy(datac, &compound, sizeof(float));
 			can_send_message(CAN_ACCELERATION_Z_ID, datac);
 		}
-		if (dataid == 0x2010 && count % 20 == 1) {
+		if (dataid == 0x2010 && count % 10 == 1) {
 			HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
 		  	uint8_t j = 0;
 		  	compound.bit = (data[i + 3 + j + 0] << 24) | (data[i + 3 + j + 1] << 16) | (data[i + 3 + j + 2] << 8) | (data[i + 3 + j + 3] << 0);
